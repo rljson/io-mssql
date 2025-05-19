@@ -6,63 +6,32 @@
 
 // import { IoSqlite } from '@rljson/io-sqlite';
 // import { Json } from '@rljson/json';
+// import { IoSqlite } from '@rljson/io-sqlite';
+// import {Io} from '@rljson/io';
+
 import sql from 'mssql';
 
 export class IoMssql {
-  // public createConfig(): Json {
+  constructor(private readonly serverPool: sql.ConnectionPool) {
+    // super('dbPath');
+    // IoMssql._serverPool = serverPool;
+  }
 
-  public async connectToDatabase(): Promise<void> {
+  public async DoSomething() {
     try {
-      const config = {
-        user: 'your_username',
-        password: 'your_password',
-        server: 'localhost',
-        database: 'your_database',
-        options: {
-          encrypt: true, // Use encryption for data transfer (recommended)
-          trustServerCertificate: true, // Required for self-signed certificates
-        },
-      };
-
-      // Create a test database if it doesn't exist
-      const createDbQuery = `
-      IF NOT EXISTS (SELECT * FROM sys.databases WHERE name = '${config.database}')
-      BEGIN
-          CREATE DATABASE [${config.database}]
-      END
-    `;
-
-      // Connect to the server (without specifying a database)
-      const serverPool = await sql.connect({
-        user: config.user,
-        password: config.password,
-        server: config.server,
-        options: config.options,
-      });
-
-      // Execute the query to create the database
-      await serverPool.request().query(createDbQuery);
-      console.log(`Database '${config.database}' is ready.`);
-
-      // Close the server connection
-      await serverPool.close();
-
-      // Create a connection pool
-      const pool = await sql.connect(config);
-      console.log('Connected to the database');
-
-      // Example query
-      const result = await pool.request().query('SELECT * FROM your_table');
-      console.log(result);
-
-      // Close the connection
-      await pool.close();
-    } catch (err) {
-      console.error('Database connection failed:', err);
+      const request = new sql.Request(this.serverPool);
+      const result = await request.query('SELECT * FROM dbo.FirstTable');
+      console.table(result.recordset);
+    } catch (error) {
+      console.error('Error executing query:', error);
     }
   }
-}
 
-// Instantiate and use the IoMssql class
-const ioMssql = new IoMssql();
-ioMssql.connectToDatabase();
+  static example = async (serverPool: sql.ConnectionPool) => {
+    const randomString = Math.random().toString(36).substring(2, 22);
+    const dbName = `CDM-Test-${randomString}`;
+    const request = new sql.Request(serverPool);
+    await request.query(`CREATE DATABASE [${dbName}]`);
+    console.log(`Database created: ${dbName}`);
+  };
+}

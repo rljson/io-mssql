@@ -54,6 +54,8 @@
     "@rljson/io-sqlite": "^0.0.10",
     "@rljson/json": "^0.0.21",
     "@rljson/rljson": "^0.0.50",
+    "msnodesql": "^0.2.1",
+    "msnodesqlv8": "^4.5.0",
     "mssql": "^11.0.1"
   },
   "pnpm": {
