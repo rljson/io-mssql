@@ -1,5 +1,13 @@
 import sql from 'mssql';
-import { beforeEach, describe, expect, it } from 'vitest';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from 'vitest';
 
 import { IoMssql } from '../src/io-mssql'; // Adjust the path as needed
 
@@ -14,32 +22,43 @@ import { IoMssql } from '../src/io-mssql'; // Adjust the path as needed
 // found in the LICENSE file in the root of this package.
 
 describe('IoMssql', () => {
-  let serverPool: sql.ConnectionPool;
+  let ioSql: IoMssql;
+  const adminCfg: sql.config = {
+    server: 'localhost\\LOCALTESTSERVER',
+    database: 'CDM-Test',
+    options: {
+      encrypt: true,
+      trustServerCertificate: true,
+    },
+    user: 'CDM-Login',
+    password: 'OneTwoThree',
+  };
 
-  beforeEach(async () => {
-    serverPool = await sql.connect({
-      server: 'localhost\\LOCALTESTSERVER',
-      database: 'CDM-Test',
-      options: {
-        encrypt: true,
-        trustServerCertificate: true,
-      },
-      authentication: {
-        type: 'ntlm',
-        options: {
-          domain: process.env.USERDOMAIN || '',
-          userName: process.env.USERNAME || '',
-          password: process.env.USERPASSWORD || '', // Set USERPASSWORD in your environment variables
-        },
-      },
-    });
-
-    console.log(serverPool);
+  beforeAll(async () => {
+    await IoMssql.deleteAllTestDatabases(adminCfg);
+    await IoMssql.dropAllLogins(adminCfg);
   });
 
-  it('should create a database', async () => {
-    const test = new IoMssql(serverPool);
-    await test.DoSomething();
-    expect(serverPool).toBeDefined();
+  beforeEach(async () => {
+    // Create general access to the server
+    const masterMind = new IoMssql(adminCfg);
+
+    // Create a new database for testing
+    ioSql = await masterMind.example();
+    await ioSql.init();
+    await ioSql.isReady();
+  });
+
+  afterEach(async () => {
+    await ioSql.close();
+  });
+
+  // Clean up after all tests have run
+  afterAll(async () => {
+    await IoMssql.deleteAllTestDatabases(adminCfg);
+  });
+
+  it('should connect to the database', async () => {
+    expect(ioSql.isOpen).toBe(true);
   });
 });
