@@ -35,7 +35,7 @@ describe('IoMssql', () => {
   };
 
   beforeAll(async () => {
-    await IoMssql.deleteAllTestDatabases(adminCfg);
+    await IoMssql.dropAllTestDatabases(adminCfg);
     await IoMssql.dropAllLogins(adminCfg);
   });
 
@@ -55,7 +55,7 @@ describe('IoMssql', () => {
 
   // Clean up after all tests have run
   afterAll(async () => {
-    await IoMssql.deleteAllTestDatabases(adminCfg);
+    await IoMssql.dropAllTestDatabases(adminCfg);
   });
 
   it('should connect to the database', async () => {

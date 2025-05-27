@@ -79,7 +79,7 @@ export class SqlStatements {
     if (!namedColumns) {
       namedColumns = `*`;
     }
-    return `SELECT ${namedColumns} FROM ${tableKey}`;
+    return `SELECT ${namedColumns} FROM ${this.addTableSuffix(tableKey)}`;
   }
 
   get tableCfg() {
