@@ -239,9 +239,9 @@ export class IoMssql implements Io {
     await this._ioTools.throwWhenTableDoesNotExist(table);
     table = this.stm.addTableSuffix(table);
     const sqlReq = new sql.Request(this._conn);
-    const result = await sqlReq.query(
-      `SELECT COUNT(*) as count FROM [${table}]`,
-    );
+    const result = await sqlReq.query(this.stm.rowCount(table));
+    // Return the count from the result set
+
     return result.recordset[0]?.count ?? 0;
   }
 
