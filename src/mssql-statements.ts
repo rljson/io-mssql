@@ -1,4 +1,5 @@
 // @license
+
 // Copyright (c) 2025 Rljson
 //
 // Use of this source code is governed by terms that can be
@@ -10,8 +11,9 @@ import { ColumnCfg, TableCfg, TableKey } from '@rljson/rljson';
 
 import { SqlStatements } from './sql-statements.ts';
 
+
 export class MsSqlStatements extends SqlStatements {
-  constructor() {
+  constructor(public schemaName: string) {
     super();
   }
 
@@ -38,11 +40,11 @@ export class MsSqlStatements extends SqlStatements {
   }
 
   get tableKeys() {
-    return `SELECT TABLE_NAME AS tableKey FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE'`;
+    return `SELECT TABLE_NAME AS tableKey FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA = '${this.schemaName}'`;
   }
 
   get tableExists() {
-    return `SELECT CASE WHEN EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = @tableName) THEN CAST(1 AS BIT) ELSE CAST(0 AS BIT) END AS tableExists`;
+    return `SELECT CASE WHEN EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = @tableName AND TABLE_SCHEMA = '${this.schemaName}') THEN CAST(1 AS BIT) ELSE CAST(0 AS BIT) END AS tableExists`;
   }
 
   createTable(tableCfg: TableCfg): string {
@@ -90,7 +92,13 @@ export class MsSqlStatements extends SqlStatements {
     // );
     // const sqlForeignKeys = foreignKeys ? `, ${foreignKeys}` : '';
     // return `CREATE TABLE ${sqltableKey} (${colsWithPrimaryKey}${sqlForeignKeys})`;
-    return `CREATE TABLE ${sqltableKey} (${colsWithPrimaryKey})`;
+    return `IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '${sqltableKey.replace(
+      /^\[|\]$/g,
+      '',
+    )}' AND TABLE_SCHEMA = '${this.schemaName}')
+  BEGIN
+    CREATE TABLE [${this.schemaName}].${sqltableKey} (${colsWithPrimaryKey})
+  END`;
   }
 
   alterTable(tableKey: TableKey, addedColumns: ColumnCfg[]): string[] {
@@ -100,10 +108,16 @@ export class MsSqlStatements extends SqlStatements {
       const columnKey = this.addColumnSuffix(col.key);
       const columnType = this.jsonToSqlType(col.type);
       statements.push(
-        `ALTER TABLE ${tableKeyWithSuffix} ADD ${columnKey} ${columnType};`,
+        `ALTER TABLE [${this.schemaName}].${tableKeyWithSuffix} ADD ${columnKey} ${columnType};`,
       );
     }
     return statements;
+  }
+
+  rowCount(tableKey: string) {
+    return `SELECT COUNT(*) AS totalCount FROM [${
+      this.schemaName
+    }].${this.addTableSuffix(tableKey)}`;
   }
 
   // DDL stuff********************************************
@@ -139,8 +153,14 @@ export class MsSqlStatements extends SqlStatements {
     const columnsSql = columnKeysWithPostfix.join(', ');
     const valuesSql = columnKeys.map((_, i) => `@p${i}`).join(', ');
 
-    return `INSERT INTO ${this.tbl.main}${this.suffix.tbl} ( ${columnsSql} ) VALUES (${valuesSql})`;
+    return `INSERT INTO [${this.schemaName}].${this.tbl.main}${this.suffix.tbl} ( ${columnsSql} ) VALUES (${valuesSql})`;
   }
+  //`SELECT name FROM sys.schemas WHERE name LIKE 'schema_%'`
+  public schemas = (testSchemaSchema: string) =>
+    `SELECT SCHEMA_NAME AS schemaName FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME LIKE '${testSchemaSchema}%'`;
+
+  public schemaTables = (schemaName: string) =>
+    `SELECT TABLE_NAME AS tableKey FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA = '${schemaName}'`;
 
   public whereString(whereClause: [string, JsonValue][]): string {
     let constraint: string = ' ';
@@ -167,5 +187,21 @@ export class MsSqlStatements extends SqlStatements {
       : constraint; // remove last ' AND '
 
     return constraint;
+  }
+  get tableCfg() {
+    return `SELECT * FROM [${this.schemaName}].${this.tbl.main}${this.suffix.tbl} WHERE key${this.suffix.col} = ?`;
+  }
+
+  get tableCfgs() {
+    return `SELECT * FROM [${this.schemaName}].${this.tbl.main}${this.suffix.tbl}`;
+  }
+
+  allData(tableKey: string, namedColumns?: string) {
+    if (!namedColumns) {
+      namedColumns = `*`;
+    }
+    return `SELECT ${namedColumns} FROM [${
+      this.schemaName
+    }].${this.addTableSuffix(tableKey)}`;
   }
 }

@@ -17,32 +17,36 @@ import {
   TableType,
 } from '@rljson/rljson';
 
+import { promises as fs } from 'fs';
 import sql from 'mssql';
+import * as path from 'path';
 
 import { MsSqlStatements } from './mssql-statements.ts';
 
 export class IoMssql implements Io {
-  stm = new MsSqlStatements();
   private _conn: sql.ConnectionPool;
   private _ioTools!: IoTools;
   private _isReady = new IsReady();
-  private _currentUserCfg: sql.config;
+  private stm: MsSqlStatements;
 
-  constructor(private readonly userCfg: sql.config) {
-    this._currentUserCfg = userCfg;
+  constructor(
+    private readonly userCfg: sql.config,
+    private readonly schemaName: string,
+  ) {
+    if (!userCfg.database)
+      throw new Error('Database name is required in the user configuration.');
     // Create a new connection pool this.userCfg
-    this._conn = new sql.ConnectionPool(this._currentUserCfg!);
+    this._conn = new sql.ConnectionPool(this.userCfg!);
     this._conn.on('error', (err) => {
       console.error('SQL Server error:', err);
     });
+
+    this.stm = new MsSqlStatements(this.schemaName);
+
     // Connection will be established in the async init() method
   }
 
   async init(): Promise<void> {
-    this._conn = new sql.ConnectionPool(this._currentUserCfg);
-    this._conn.on('error', (err) => {
-      console.error('SQL Server error:', err);
-    });
     await this._conn.connect();
     this._ioTools = new IoTools(this);
     await this._initTableCfgs();
@@ -120,6 +124,7 @@ export class IoMssql implements Io {
 
   async createOrExtendTable(request: { tableCfg: TableCfg }): Promise<void> {
     // Make sure that the table config is compatible
+    console.log(request.tableCfg);
     await this._ioTools.throwWhenTableIsNotCompatible(request.tableCfg);
 
     const tableKey = request.tableCfg.key;
@@ -239,29 +244,26 @@ export class IoMssql implements Io {
     await this._ioTools.throwWhenTableDoesNotExist(table);
     table = this.stm.addTableSuffix(table);
     const sqlReq = new sql.Request(this._conn);
-    const result = await sqlReq.query(this.stm.rowCount(table));
-    // Return the count from the result set
 
-    return result.recordset[0]?.count ?? 0;
+    const result = await sqlReq.query(this.stm.rowCount(table));
+
+    // Return the array of counts
+    return result.recordset[0].totalCount ?? 0; // Return the second count if available, otherwise the first, or 0 if both are null
   }
 
   public example = async () => {
-    // Connect to the server
-    if (!this._conn.connected) {
-      await this._conn.connect();
-    }
+    await this._conn.connect();
     const req = new sql.Request(this._conn);
     // Create random names
-    const randomString = Math.random().toString(36).substring(2, 22);
-    const dbName = `CDM-Test-${randomString}`;
-    const schemaName = `Pastry`;
+    const randomString = Math.random().toString(36).substring(2, 12);
+    const dbName = this.userCfg.database ?? 'Test-DB'; // `CDM-Test-${randomString}`;
+    const testSchemaName = `testschema_${randomString}`;
     const loginName = `login_${randomString}`;
     const loginPassword = `P@ssw0rd!${randomString}`;
     // Create database and schema
     try {
-      await req.query(this.stm.createDatabase(dbName));
       await req.query(this.stm.useDatabase(dbName));
-      await req.query(this.stm.createSchema(schemaName));
+      await req.query(this.stm.createSchema(testSchemaName));
     } catch (error) {
       console.error('Error creating database:', error);
       throw error;
@@ -270,11 +272,17 @@ export class IoMssql implements Io {
     try {
       await req.query(this.stm.createLogin(loginName, dbName, loginPassword));
       await req.query(this.stm.useDatabase(dbName));
-      await req.query(this.stm.createUser(loginName, loginName, schemaName));
+      await req.query(
+        this.stm.createUser(loginName, loginName, testSchemaName),
+      );
+      // Add user to roles
+
       await req.query(this.stm.addUserToRole('db_datareader', loginName));
       await req.query(this.stm.addUserToRole('db_datawriter', loginName));
       await req.query(this.stm.addUserToRole('db_ddladmin', loginName));
-      await req.query(this.stm.grantSchemaPermission(schemaName, loginName));
+      await req.query(
+        this.stm.grantSchemaPermission(testSchemaName, loginName),
+      );
     } catch (error) {
       console.error('Error creating database:', error);
       throw error;
@@ -291,11 +299,77 @@ export class IoMssql implements Io {
       password: loginPassword,
     };
 
-    return new IoMssql(loginUser);
+    return new IoMssql(loginUser, testSchemaName);
   };
 
   public get isOpen(): boolean {
     return this._conn.connected;
+  }
+
+  // structure-related methods
+
+  // Static connection method
+  static async makeConnection(userCfg: sql.config): Promise<sql.Request> {
+    const serverPool = new sql.ConnectionPool(userCfg);
+    serverPool.on('error', (err) => {
+      console.error('SQL Server error:', err);
+    });
+    await serverPool.connect();
+    return new sql.Request(serverPool);
+  }
+  static async installScripts(userCfg: sql.config): Promise<void> {
+    const dbRequest = await this.makeConnection(userCfg);
+
+    // Read the install-script.sql file from the same directory as this file
+    const scriptPath = path.resolve(__dirname, 'install-script.sql');
+    const scriptContent = await fs.readFile(scriptPath, 'utf-8');
+    const separator = 'GO --REM'; // 'GO' ist not recognized by mssql, so we use a custom separator'
+    // Split the script content by the separator
+    const scriptParts = scriptContent.split(separator);
+    for (const part of scriptParts) {
+      const cleanedPart = part.replace(/[\r]/g, ' ').trim();
+      if (cleanedPart) {
+        console.log(`Executing script part: ${cleanedPart.slice(0, 50)}`);
+        await dbRequest.query(cleanedPart);
+      }
+    }
+  }
+
+  static async dropTestLogins(userCfg: sql.config): Promise<void> {
+    const dbRequest = await this.makeConnection(userCfg);
+    await dbRequest.query(`EXEC PantrySchema.DropAllPantryUsers`);
+    await dbRequest.query(`EXEC PantrySchema.DropAllPantryLogins`);
+  }
+
+  static async dropTestSchemas(userCfg: sql.config): Promise<void> {
+    const dbRequest = await this.makeConnection(userCfg);
+    await dbRequest.query(`EXEC PantrySchema.DropAllPantryObjects`);
+  }
+
+  // Extra methods to manage tests
+  static async dropCurrentSchema(
+    userCfg: sql.config,
+    schemaName: string,
+  ): Promise<void> {
+    const dbRequest = await this.makeConnection(userCfg);
+    await dbRequest.query(
+      `EXEC PantrySchema.DropCurrentSchema [${schemaName}]`,
+    );
+  }
+  static async dropCurrentLogin(
+    userCfg: sql.config,
+    loginName: string,
+  ): Promise<void> {
+    const dbRequest = await this.makeConnection(userCfg);
+    await dbRequest.query(`EXEC PantrySchema.DropCurrentLogin [${loginName}]`);
+  }
+
+  public get currentSchema(): string {
+    return this.schemaName;
+  }
+
+  public get currentLogin(): string {
+    return this.userCfg.user || 'unknown';
   }
 
   // PRIVATE METHODS
@@ -321,58 +395,16 @@ export class IoMssql implements Io {
     values.forEach((val, idx) => {
       sqlReq.input(`p${idx}`, val);
     });
-    await sqlReq.query(insertQuery);
+    try {
+      await sqlReq.query(insertQuery);
+    } catch (error) {
+      if ((error as any).number === 2627) {
+        // Duplicate entry, tableCfgs already exists
+        return;
+      }
+      console.error('Error inserting table configuration:', error);
+    }
   };
-
-  static async dropAllTestDatabases(userCfg: sql.config): Promise<void> {
-    const dbConnection = new sql.ConnectionPool(userCfg);
-    const msStatements = new MsSqlStatements();
-    const sqlRequest = new sql.Request(dbConnection);
-
-    sqlRequest.on('error', (err) => {
-      console.error('SQL Server error:', err);
-    });
-    await dbConnection.connect();
-    // Get all databases with names starting with 'CDM-Test-'
-    const result = await sqlRequest.query(`
-      SELECT name FROM sys.databases WHERE name LIKE 'CDM-Test-%'
-    `);
-    const dbs: string[] = result.recordset.map((row: any) => row.name);
-    for (const dbName of dbs) {
-      try {
-        // Set database to single user mode to force disconnects
-        await sqlRequest.query(
-          `ALTER DATABASE [${dbName}] SET SINGLE_USER WITH ROLLBACK IMMEDIATE`,
-        );
-        await sqlRequest.query(`ALTER DATABASE [${dbName}] SET MULTI_USER`);
-        await sqlRequest.query(msStatements.dropDatabase(dbName));
-      } catch (err) {
-        throw err;
-      }
-    }
-  }
-
-  static async dropAllLogins(userCfg: sql.config): Promise<void> {
-    const serverPool = new sql.ConnectionPool(userCfg);
-    const dbRequest = new sql.Request(serverPool);
-    dbRequest.on('error', (err) => {
-      console.error('SQL Server error:', err);
-      throw err;
-    });
-    await serverPool.connect();
-    // Get all logins with names starting with 'login_%'
-    const result = await dbRequest.query(`
-      SELECT name FROM sys.server_principals WHERE name LIKE 'login_%'
-    `);
-    const logins: string[] = result.recordset.map((row: any) => row.name);
-    for (const loginName of logins) {
-      try {
-        await dbRequest.query(`DROP LOGIN [${loginName}]`);
-      } catch (err) {
-        console.error(`Failed to delete login ${loginName}:`, err);
-      }
-    }
-  }
 
   private async _extendTable(newTableCfg: TableCfg): Promise<void> {
     // Estimate added columns

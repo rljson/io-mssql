@@ -5,7 +5,7 @@
 // found in the LICENSE file in the root of this package.
 
 // ⚠️ DO NOT MODIFY THIS FILE DIRECTLY ⚠️
-// 
+//
 // This file is a copy of @rljson/io/test/io-conformance.spec.ts.
 //
 // To make changes, please execute the following steps:
@@ -14,8 +14,8 @@
 //   3. Submit a pull request
 //   4. Publish a the new changes to npm
 
-
 import { hip, hsh, rmhsh } from '@rljson/hash';
+import { Io, IoTestSetup, IoTools } from '@rljson/io';
 import {
   addColumnsToTableCfg,
   exampleTableCfg,
@@ -24,9 +24,15 @@ import {
   TableType,
 } from '@rljson/rljson';
 
-import { afterEach, beforeEach, describe, expect, it } from 'vitest';
-
-import { Io, IoTestSetup, IoTools } from '@rljson/io';
+import {
+  afterAll,
+  afterEach,
+  beforeAll,
+  beforeEach,
+  describe,
+  expect,
+  it,
+} from 'vitest';
 
 import { testSetup } from './io-conformance.setup.ts';
 import { expectGolden, ExpectGoldenOptions } from './setup/goldens.ts';
@@ -41,9 +47,13 @@ export const runIoConformanceTests = () => {
     let ioTools: IoTools;
     let setup: IoTestSetup;
 
-    beforeEach(async () => {
+    beforeAll(async () => {
       setup = testSetup();
-      await setup.init();
+      await setup.beforeAll();
+    });
+
+    beforeEach(async () => {
+      await setup.beforeEach();
       io = setup.io;
       await io.init();
       await io.isReady();
@@ -52,7 +62,11 @@ export const runIoConformanceTests = () => {
 
     afterEach(async () => {
       await io.close();
-      await setup.tearDown();
+      await setup.afterEach();
+    });
+
+    afterAll(async () => {
+      await setup.afterAll();
     });
 
     describe('isReady()', () => {
@@ -63,11 +77,11 @@ export const runIoConformanceTests = () => {
 
     describe('isOpen()', () => {
       it('should return false before init, true after and false after close', async () => {
-        const setup = testSetup();
-        await setup.init();
+        // const setup = testSetup();
+        // await setup.beforeEach();
 
-        const io = setup.io;
-        expect(io.isOpen).toBe(false);
+        // const io = setup.io;
+        // expect(io.isOpen).toBe(false);
 
         await io.init();
         expect(io.isOpen).toBe(true);

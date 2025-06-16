@@ -1,15 +1,8 @@
 import sql from 'mssql';
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-} from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { IoMssql } from '../src/io-mssql'; // Adjust the path as needed
+
 
 // @license
 // Copyright (c) 2025 Rljson
@@ -35,8 +28,10 @@ describe('IoMssql', () => {
   };
 
   beforeAll(async () => {
-    await IoMssql.dropAllTestDatabases(adminCfg);
-    await IoMssql.dropAllLogins(adminCfg);
+    await IoMssql.installScripts(adminCfg);
+    await IoMssql.dropTestLogins(adminCfg);
+    await IoMssql.dropTestSchemas(adminCfg);
+    console.log('IoMssql installation scripts executed successfully.');
   });
 
   beforeEach(async () => {
@@ -55,7 +50,8 @@ describe('IoMssql', () => {
 
   // Clean up after all tests have run
   afterAll(async () => {
-    await IoMssql.dropAllTestDatabases(adminCfg);
+    await IoMssql.dropTestLogins(adminCfg);
+    await IoMssql.dropTestSchemas(adminCfg);
   });
 
   it('should connect to the database', async () => {
