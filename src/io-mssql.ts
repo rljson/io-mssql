@@ -8,20 +8,14 @@ import { hip, hsh } from '@rljson/hash';
 import { Io, IoTools } from '@rljson/io';
 import { IsReady } from '@rljson/is-ready';
 import { Json, JsonValue, JsonValueType } from '@rljson/json';
-import {
-  ColumnCfg,
-  iterateTables,
-  Rljson,
-  TableCfg,
-  TableKey,
-  TableType,
-} from '@rljson/rljson';
+import { ColumnCfg, iterateTables, Rljson, TableCfg, TableKey, TableType } from '@rljson/rljson';
 
 import { promises as fs } from 'fs';
 import sql from 'mssql';
 import * as path from 'path';
 
 import { MsSqlStatements } from './mssql-statements.ts';
+
 
 export class IoMssql implements Io {
   private _conn: sql.ConnectionPool;
@@ -124,7 +118,6 @@ export class IoMssql implements Io {
 
   async createOrExtendTable(request: { tableCfg: TableCfg }): Promise<void> {
     // Make sure that the table config is compatible
-    console.log(request.tableCfg);
     await this._ioTools.throwWhenTableIsNotCompatible(request.tableCfg);
 
     const tableKey = request.tableCfg.key;
@@ -329,7 +322,6 @@ export class IoMssql implements Io {
     for (const part of scriptParts) {
       const cleanedPart = part.replace(/[\r]/g, ' ').trim();
       if (cleanedPart) {
-        console.log(`Executing script part: ${cleanedPart.slice(0, 50)}`);
         await dbRequest.query(cleanedPart);
       }
     }
@@ -347,6 +339,16 @@ export class IoMssql implements Io {
   }
 
   // Extra methods to manage tests
+
+  static async dropCurrentConstraints(
+    userCfg: sql.config,
+    schemaName: string,
+  ): Promise<void> {
+    const dbRequest = await this.makeConnection(userCfg);
+    await dbRequest.query(
+      `EXEC PantrySchema.DropCurrentConstraints [${schemaName}]`,
+    );
+  }
   static async dropCurrentSchema(
     userCfg: sql.config,
     schemaName: string,

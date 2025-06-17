@@ -15,6 +15,7 @@ import { IoTools } from '@rljson/io';
 import { Json, JsonValue, JsonValueType } from '@rljson/json';
 import { ColumnCfg, TableCfg, TableKey } from '@rljson/rljson';
 
+
 // import { refName } from './constants.ts';
 
 export class SqlStatements {
@@ -200,11 +201,13 @@ export class SqlStatements {
     );
   }
 
-  foreignKeyReferences(refColumnNames: string[]) {
+  foreignKeys(refColumnNames: string[]) {
     return refColumnNames
       .map(
         (col: string | any[]) =>
-          `FOREIGN KEY (${col}${this.suffix.col}) REFERENCES ${col.slice(
+          `CONSTRAINT FK_${col}${this.suffix.col} FOREIGN KEY (${col}${
+            this.suffix.col
+          }) REFERENCES ${col.slice(
             0,
             -this.suffix.ref.length,
           )}(${this.addColumnSuffix(this.connectingColumn)})`,

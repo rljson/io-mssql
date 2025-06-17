@@ -45,16 +45,18 @@ class MyIoTestSetup implements IoTestSetup {
   async afterEach(): Promise<void> {
     // Clean up environment after each test
     const currentSchema = this.mio.currentSchema;
+    await IoMssql.dropCurrentConstraints(this.userCfg, currentSchema);
     await IoMssql.dropCurrentSchema(this.userCfg, currentSchema);
     const currentLogin = this.mio.currentLogin;
-    await this.io.close();
-    await IoMssql.dropCurrentLogin(this.userCfg, currentLogin);
+    await this.io.close().then(async () => {
+      await IoMssql.dropCurrentLogin(this.userCfg, currentLogin);
+    });
   }
 
   async afterAll(): Promise<void> {
     // Clean up environment after all tests
-    // await IoMssql.dropTestLogins(this.userCfg);
-    // await IoMssql.dropTestSchemas(this.userCfg);
+    await IoMssql.dropTestLogins(this.userCfg);
+    await IoMssql.dropTestSchemas(this.userCfg);
   }
 
   get io(): Io {

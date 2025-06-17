@@ -8,11 +8,26 @@ END
 GO --REM
 
 CREATE OR ALTER PROCEDURE
+PantrySchema.DropCurrentConstraints(@SchemaName NVARCHAR(50))
+AS
+BEGIN
+ -- Drop all foreign key constraints
+ DECLARE @sql NVARCHAR(MAX) = N''
+      SELECT @sql += 'ALTER TABLE [' + s.name + '].[' + t.name + '] DROP CONSTRAINT [' + f.name + '];'
+      FROM sys.foreign_keys f
+      INNER JOIN sys.tables t ON f.parent_object_id = t.object_id
+      INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+      WHERE s.name = @SchemaName;
+      EXEC sp_executesql @sql;
+END
+GO --REM
+
+CREATE OR ALTER PROCEDURE
 PantrySchema.DropCurrentSchema (@SchemaName NVARCHAR(50))
 AS
 BEGIN
 PRINT @SchemaName
-DECLARE @sql nvarchar(max)
+DECLARE @sql nvarchar(max) = N''
  -- Drop all foreign key constraints
       SELECT @sql += 'ALTER TABLE [' + s.name + '].[' + t.name + '] DROP CONSTRAINT [' + f.name + '];'
       FROM sys.foreign_keys f
@@ -114,14 +129,13 @@ AS
 BEGIN
   DECLARE @sql NVARCHAR(MAX)
 
-  IF EXISTS (SELECT 1 FROM sys.dm_exec_sessions WHERE login_name = @LoginName)
-  BEGIN
-    PRINT 'Cannot drop login in use: ' + @LoginName
-    RETURN
-  END
 
+IF EXISTS (SELECT 1 FROM sys.server_principals WHERE name = @LoginName)
+AND NOT EXISTS (SELECT 1 FROM sys.dm_exec_sessions WHERE login_name = @LoginName)
+BEGIN
   SET @sql = N'DROP LOGIN [' + @LoginName + ']'
   EXEC sp_executesql @sql
+ END
 END
 GO --REM
 

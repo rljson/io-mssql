@@ -53,52 +53,47 @@ export class MsSqlStatements extends SqlStatements {
 
     const sqlCreateColumns = columnsCfg
       .map((col) => {
-        const sqlType = this.jsonToSqlType(col.type);
+        let sqlType = this.jsonToSqlType(col.type);
+        if (
+          (col.key.endsWith('Ref') || col.key === this.connectingColumn) &&
+          sqlType.toLowerCase() === 'nvarchar(max)'
+        ) {
+          sqlType = 'NVARCHAR(256)';
+        }
         return `${this.addColumnSuffix(col.key)} ${sqlType}`;
       })
       .join(', ');
 
     // standard primary key - do not remove ;-)
+    const primaryKey = `CONSTRAINT PK_${
+      tableCfg.key
+    } PRIMARY KEY ([${this.addColumnSuffix(this.connectingColumn)}])`;
 
-    const connectingCol = columnsCfg.find(
-      (col) => col.key === this.connectingColumn,
+    const foreignKeysArr = this.foreignKeys(
+      columnsCfg
+        .map((col) => col.key)
+        .filter((col) => col.endsWith(this.suffix.ref)),
     );
-    if (!connectingCol) {
-      throw new Error(
-        `Connecting column "${this.connectingColumn}" not found in table configuration.`,
-      );
-    }
-    // Return the column's type if the column exists
-    // connectingCol.type;
-    const actualType = this.jsonToSqlType(connectingCol.type);
-    // If the type is NVARCHAR(MAX), replace MAX with 256 for the connecting column
-    const actualTypeLimited =
-      actualType === 'NVARCHAR(MAX)' ? 'NVARCHAR(256)' : actualType;
-    const originalColumnTerm = `${this.connectingColumn}${this.suffix.col} ${actualType}`;
-    const columnWithPrimaryKey = `${this.connectingColumn}${this.suffix.col} ${actualTypeLimited} PRIMARY KEY`;
+    const foreignKeys = Array.isArray(foreignKeysArr)
+      ? foreignKeysArr.filter(Boolean).join(', ')
+      : foreignKeysArr || '';
 
-    const colsWithPrimaryKey = sqlCreateColumns.replace(
-      originalColumnTerm,
-      columnWithPrimaryKey,
-    );
+    const colsWithPrimaryKey = `${sqlCreateColumns}, ${primaryKey}`;
+    const colsWithPrimaryKeyAndForeignKeys = foreignKeys
+      ? `${colsWithPrimaryKey}, ${foreignKeys}`
+      : colsWithPrimaryKey;
 
-    // *******************************************************************
-    // ******************foreign keys are not yet implemented*************
-    // *******************************************************************
-    // const foreignKeys = this.tableReferences(
-    //   columnsCfg
-    //     .map((col) => col.key)
-    //     .filter((col) => col.endsWith(this.suffix.ref)),
-    // );
-    // const sqlForeignKeys = foreignKeys ? `, ${foreignKeys}` : '';
     // return `CREATE TABLE ${sqltableKey} (${colsWithPrimaryKey}${sqlForeignKeys})`;
-    return `IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '${sqltableKey.replace(
+    const sqlIfNotExists = `IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '${sqltableKey.replace(
       /^\[|\]$/g,
       '',
     )}' AND TABLE_SCHEMA = '${this.schemaName}')
   BEGIN
-    CREATE TABLE [${this.schemaName}].${sqltableKey} (${colsWithPrimaryKey})
+    CREATE TABLE [${
+      this.schemaName
+    }].${sqltableKey} (${colsWithPrimaryKeyAndForeignKeys})
   END`;
+    return sqlIfNotExists;
   }
 
   alterTable(tableKey: TableKey, addedColumns: ColumnCfg[]): string[] {
@@ -203,5 +198,18 @@ export class MsSqlStatements extends SqlStatements {
     return `SELECT ${namedColumns} FROM [${
       this.schemaName
     }].${this.addTableSuffix(tableKey)}`;
+  }
+
+  foreignKeys(refColumnNames: string[]) {
+    return refColumnNames
+      .map(
+        (col) =>
+          `CONSTRAINT FK_${col}${this.suffix.col} FOREIGN KEY (${col}${
+            this.suffix.col
+          }) REFERENCES ${this.schemaName}.${this.addTableSuffix(
+            col.slice(0, -this.suffix.ref.length),
+          )}(${this.addColumnSuffix(this.connectingColumn)})`,
+      )
+      .join(', ');
   }
 }
