@@ -2,6 +2,7 @@
 // Copyright (c) 2025 Rljson
 //
 // Use of this source code is governed by terms that can be
+
 // found in the LICENSE file in the root of this package.
 import { describe, expect, it } from 'vitest';
 
@@ -74,5 +75,64 @@ describe('MsSqlStatements.schemaTables', () => {
     const expectedSql =
       "SELECT TABLE_NAME AS tableKey FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA = ''";
     expect(msSqlStatements.schemaTables(schemaName)).toBe(expectedSql);
+  });
+});
+describe('MsSqlStatements.allData', () => {
+  const msSqlStatements = new MsSqlStatements('dbo');
+  const tableKey = msSqlStatements.addTableSuffix('myTable');
+  const testSchema = msSqlStatements.schemaName;
+  it('should generate correct SQL for all columns when namedColumns is not provided', () => {
+    const expectedSql = `SELECT * FROM [${testSchema}].[${tableKey}]`;
+    expect(msSqlStatements.allData(tableKey)).toBe(expectedSql);
+  });
+
+  it('should generate correct SQL for specified namedColumns', () => {
+    const namedColumns = 'col1, col2';
+    const expectedSql = `SELECT col1, col2 FROM [${testSchema}].[${tableKey}]`;
+    expect(msSqlStatements.allData(tableKey, namedColumns)).toBe(expectedSql);
+  });
+});
+describe('MsSqlStatements.tableCfg', () => {
+  const msSqlStatements = new MsSqlStatements('dbo');
+
+  it('should generate correct SQL for tableCfg getter', () => {
+    const expectedSql = `SELECT * FROM [${msSqlStatements.schemaName}].${msSqlStatements.tbl.main}${msSqlStatements.suffix.tbl} WHERE key${msSqlStatements.suffix.col} = ?`;
+    expect(msSqlStatements.tableCfg).toBe(expectedSql);
+  });
+  describe('MsSqlStatements.whereString', () => {
+    const msSqlStatements = new MsSqlStatements('dbo');
+
+    it('should generate correct SQL for string value', () => {
+      const whereClause: [string, string][] = [['name', 'John']];
+      expect(msSqlStatements.whereString(whereClause)).toBe(
+        " name_col = 'John'",
+      );
+    });
+
+    it('should generate correct SQL for number value', () => {
+      const whereClause: [string, number][] = [['age', 30]];
+      expect(msSqlStatements.whereString(whereClause)).toBe(' age_col = 30');
+    });
+
+    it('should generate correct SQL for boolean true value', () => {
+      const whereClause: [string, boolean][] = [['isActive', true]];
+      expect(msSqlStatements.whereString(whereClause)).toBe(
+        ' isActive_col = 1',
+      );
+    });
+
+    it('should generate correct SQL for boolean false value', () => {
+      const whereClause: [string, boolean][] = [['isActive', false]];
+      expect(msSqlStatements.whereString(whereClause)).toBe(
+        ' isActive_col = 0',
+      );
+    });
+
+    it('should generate correct SQL for boolean false value', () => {
+      const whereClause: [string, boolean][] = [['isActive', true]];
+      expect(msSqlStatements.whereString(whereClause)).toBe(
+        ' isActive_col = 1',
+      );
+    });
   });
 });

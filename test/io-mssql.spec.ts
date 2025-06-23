@@ -113,4 +113,8 @@ describe('IoMssql', () => {
       'MSSQL connection is not open.',
     );
   });
+
+  it('should execute installScripts without throwing', async () => {
+    await expect(IoMssql.installScripts(adminCfg)).resolves.not.toThrow();
+  });
 });

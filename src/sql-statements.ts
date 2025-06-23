@@ -15,7 +15,6 @@ import { IoTools } from '@rljson/io';
 import { Json, JsonValue, JsonValueType } from '@rljson/json';
 import { ColumnCfg, TableCfg, TableKey } from '@rljson/rljson';
 
-
 // import { refName } from './constants.ts';
 
 export class SqlStatements {
@@ -91,7 +90,6 @@ export class SqlStatements {
     return `SELECT * FROM ${this.tbl.main}${this.suffix.tbl}`;
   }
 
-  /* v8 ignore start */
   get currentTableCfg(): string {
     const sql: string[] = [
       'WITH versions AS (',
@@ -105,7 +103,6 @@ export class SqlStatements {
     ];
     return sql.join('\n');
   }
-  /* v8 ignore end */
 
   get currentTableCfgs(): string {
     const sql: string[] = [
@@ -380,7 +377,9 @@ export class SqlStatements {
           case 'boolean':
             convertedRow[key] = val !== 0;
             break;
+          /* v8 ignore start */
           case 'jsonArray':
+          /* v8 ignore stop */
           case 'json':
             convertedRow[key] = JSON.parse(val as string);
             break;
@@ -388,10 +387,9 @@ export class SqlStatements {
           case 'number':
             convertedRow[key] = val;
             break;
-          /* v8 ignore start */
+
           default:
             throw new Error('Unsupported column type ' + type);
-          /* v8 ignore end */
         }
       }
 

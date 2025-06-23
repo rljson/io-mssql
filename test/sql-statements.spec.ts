@@ -102,6 +102,7 @@ describe('SqlStatements', () => {
         { key: 'b', type: 'number' },
         { key: 'c', type: 'boolean' },
         { key: 'd', type: 'json' },
+        { key: 'e', type: 'jsonArray' },
       ],
     };
     const data = [
@@ -218,5 +219,193 @@ describe('SqlStatements', () => {
   it('should generate correct SQL for tableCfgs getter', () => {
     const sql = sqlStatements.tableCfgs;
     expect(sql).toBe('SELECT * FROM tableCfgs_tbl');
+  });
+  it('should generate correct SQL for currentTableCfg getter', () => {
+    const sql = sqlStatements.currentTableCfg;
+    expect(sql).toContain('WITH versions AS (');
+    expect(sql).toContain(
+      'SELECT _hash_col, key_col, MAX(json_each.key) AS max_val',
+    );
+    expect(sql).toContain('FROM tableCfgs_tbl, json_each(columns_col)');
+    expect(sql).toContain('WHERE json_each.value IS NOT NULL');
+    expect(sql).toContain('AND key_col = ? GROUP BY _hash_col, key_col)');
+    expect(sql).toContain('SELECT * FROM tableCfgs_tbl tt');
+    expect(sql).toContain(
+      'LEFT JOIN versions ON tt._hash_col = versions._hash_col',
+    );
+    expect(sql).toContain(
+      'WHERE versions.max_val = (SELECT MAX(max_val) FROM versions);',
+    );
+    expect(typeof sql).toBe('string');
+    expect(sql).toMatch(/WITH versions AS \(/);
+    expect(sql).toMatch(
+      /LEFT JOIN versions ON tt\._hash_col = versions\._hash_col/,
+    );
+  });
+  it('should generate correct SQL for currentTableCfgs getter', () => {
+    const sql = sqlStatements.currentTableCfgs;
+    expect(typeof sql).toBe('string');
+    expect(sql).toContain('SELECT');
+    expect(sql).toContain('FROM');
+    expect(sql).toContain('tableCfgs_tbl');
+    expect(sql).toContain('WITH');
+    expect(sql).toContain('column_count AS (');
+    expect(sql).toContain('max_tables AS (');
+    expect(sql).toContain('LEFT JOIN max_tables');
+    expect(sql).toMatch(/_hash_col IN \(\s*WITH/);
+    expect(sql).toMatch(/SELECT\s+\*\s+FROM\s+tableCfgs_tbl/);
+    expect(sql).toMatch(/GROUP BY\s+key_col/);
+    expect(sql).toMatch(/WHERE\s+mt\.newest IS NOT NULL/);
+  });
+  it('should add and remove suffixes for custom suffixes', () => {
+    expect(sqlStatements.addFix('foo', '_bar')).toBe('foo_bar');
+    expect(sqlStatements.addFix('foo_bar', '_bar')).toBe('foo_bar');
+    expect(sqlStatements.remFix('foo_bar', '_bar')).toBe('foo');
+    expect(sqlStatements.remFix('foo', '_bar')).toBe('foo');
+  });
+
+  it('should generate correct SQL for joinExpression', () => {
+    expect(sqlStatements.joinExpression('table1', 't1')).toBe(
+      'LEFT JOIN table1 AS t1 \n',
+    );
+  });
+
+  it('should generate correct SQL for articleExists', () => {
+    expect(sqlStatements.articleExists).toContain(
+      'SELECT cl.layer, ar.assign FROM catalogLayers cl',
+    );
+    expect(sqlStatements.articleExists).toContain('LEFT JOIN articleSets ar');
+    expect(sqlStatements.articleExists).toContain('WHERE cl.winNumber = ?');
+  });
+
+  it('should generate correct SQL for catalogExists', () => {
+    expect(sqlStatements.catalogExists).toBe(
+      'SELECT 1 FROM catalogLayers WHERE winNumber = @winNumber',
+    );
+  });
+
+  it('should generate correct SQL for catalogArticleTypes', () => {
+    expect(sqlStatements.catalogArticleTypes).toContain(
+      'SELECT articleType FROM currentArticles',
+    );
+    expect(sqlStatements.catalogArticleTypes).toContain('WHERE winNumber = ?');
+    expect(sqlStatements.catalogArticleTypes).toContain('GROUP BY articleType');
+  });
+
+  it('should generate correct SQL for foreignKeys', () => {
+    const result = sqlStatements.foreignKeys(['fooRef', 'barRef']);
+    expect(result).toContain(
+      'CONSTRAINT FK_fooRef_col FOREIGN KEY (fooRef_col) REFERENCES foo(',
+    );
+    expect(result).toContain(
+      'CONSTRAINT FK_barRef_col FOREIGN KEY (barRef_col) REFERENCES bar(',
+    );
+  });
+
+  it('should generate correct SQL for tableReferences', () => {
+    const result = sqlStatements.tableReferences(['fooRef', 'barRef']);
+    expect(result).toContain('FOREIGN KEY (fooRef) REFERENCES foo (_hash_col)');
+    expect(result).toContain('FOREIGN KEY (barRef) REFERENCES bar (_hash_col)');
+  });
+
+  it('should generate correct SQL for insertTableCfg', () => {
+    const sql = sqlStatements.insertTableCfg();
+    expect(sql).toContain('INSERT INTO tableCfgs_tbl');
+    expect(sql).toContain('VALUES');
+    expect(sql).toMatch(/VALUES\s*\((\?,\s*)+\?\)/);
+  });
+
+  it('should generate correct SQL for tableType', () => {
+    expect(sqlStatements.tableType).toContain(
+      'SELECT type_col AS type FROM tableCfgs_col',
+    );
+    expect(sqlStatements.tableType).toContain('WHERE key_col = ?');
+    expect(sqlStatements.tableType).toContain('SELECT MAX(version_col)');
+  });
+
+  it('should generate correct SQL for columnKeys', () => {
+    expect(sqlStatements.columnKeys('myTable')).toBe(
+      'PRAGMA table_info(myTable)',
+    );
+  });
+
+  it('should generate correct SQL for createFullTable', () => {
+    const sql = sqlStatements.createFullTable(
+      'foo',
+      'a_col TEXT',
+      'FOREIGN KEY (b) REFERENCES bar(_hash_col)',
+    );
+    expect(sql).toBe(
+      'CREATE TABLE foo (a_col TEXT, FOREIGN KEY (b) REFERENCES bar(_hash_col))',
+    );
+  });
+
+  it('should generate correct SQL for createTableCfgsTable', () => {
+    const sql = sqlStatements.createTableCfgsTable;
+    expect(sql).toContain('CREATE TABLE tableCfgs_tbl');
+    expect(sql).toContain('_hash_col TEXT PRIMARY KEY');
+  });
+
+  it('should throw error for unsupported column type in parseData', () => {
+    const tableCfg: TableCfg = {
+      key: 'test',
+      type: 'ingredients',
+      isHead: false,
+      isRoot: false,
+      isShared: true,
+      columns: [{ key: 'a', type: 'unsupported' as any }],
+    };
+    const data = [{ a_col: 'foo' }];
+    expect(() => sqlStatements.parseData(data, tableCfg)).toThrow(
+      'Unsupported column type unsupported',
+    );
+  });
+
+  it('should handle null and undefined values in parseData', () => {
+    const tableCfg: TableCfg = {
+      key: 'test',
+      type: 'ingredients',
+      isHead: false,
+      isRoot: false,
+      isShared: true,
+      columns: [
+        { key: 'a', type: 'string' },
+        { key: 'b', type: 'number' },
+      ],
+    };
+    const data = [{ a_col: null, b_col: undefined }];
+    const parsed = sqlStatements.parseData(data, tableCfg);
+    expect(parsed).toEqual([{}]);
+  });
+
+  it('should serializeRow with missing keys as null', () => {
+    const tableCfg: TableCfg = {
+      key: 'test',
+      type: 'ingredients',
+      isHead: false,
+      isRoot: false,
+      isShared: true,
+      columns: [
+        { key: 'a', type: 'string' },
+        { key: 'b', type: 'number' },
+      ],
+    };
+    const row = { a: 'foo' };
+    const result = sqlStatements.serializeRow(row, tableCfg);
+    expect(result).toEqual(['foo', null]);
+  });
+
+  it('should serializeRow with boolean false as 0', () => {
+    const tableCfg: TableCfg = {
+      key: 'test',
+      type: 'ingredients',
+      isHead: false,
+      isRoot: false,
+      isShared: true,
+      columns: [{ key: 'a', type: 'boolean' }],
+    };
+    const row = { a: false };
+    const result = sqlStatements.serializeRow(row, tableCfg);
+    expect(result).toEqual([0]);
   });
 });

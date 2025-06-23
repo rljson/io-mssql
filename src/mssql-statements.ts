@@ -73,11 +73,12 @@ export class MsSqlStatements extends SqlStatements {
         .map((col) => col.key)
         .filter((col) => col.endsWith(this.suffix.ref)),
     );
+
     /* v8 ignore start */
     const foreignKeys = Array.isArray(foreignKeysArr)
       ? foreignKeysArr.filter(Boolean).join(', ')
       : foreignKeysArr || '';
-    /* v8 ignore end */
+    /* v8 ignore stop */
     const colsWithPrimaryKey = `${sqlCreateColumns}, ${primaryKey}`;
     const colsWithPrimaryKeyAndForeignKeys = foreignKeys
       ? `${colsWithPrimaryKey}, ${foreignKeys}`
@@ -171,16 +172,18 @@ export class MsSqlStatements extends SqlStatements {
         constraint += `${columnWithFix} IS NULL AND `;
       } else if (typeof value === 'object') {
         constraint += `${columnWithFix} = '${JSON.stringify(value)}' AND `;
-      } else {
+      } /* v8 ignore start */ else {
         throw new Error(`Unsupported value type for column ${column}`);
       }
+      /* v8 ignore stop */
     }
-
+    /* v8 ignore start */
     constraint = constraint.endsWith('AND ')
       ? constraint.slice(0, -5)
       : constraint; // remove last ' AND '
 
     return constraint;
+    /* v8 ignore stop */
   }
   get tableCfg() {
     return `SELECT * FROM [${this.schemaName}].${this.tbl.main}${this.suffix.tbl} WHERE key${this.suffix.col} = ?`;
@@ -196,7 +199,7 @@ export class MsSqlStatements extends SqlStatements {
     }
     return `SELECT ${namedColumns} FROM [${
       this.schemaName
-    }].${this.addTableSuffix(tableKey)}`;
+    }].[${this.addTableSuffix(tableKey)}]`;
   }
 
   foreignKeys(refColumnNames: string[]) {

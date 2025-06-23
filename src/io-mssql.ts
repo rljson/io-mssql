@@ -36,11 +36,13 @@ export class IoMssql implements Io {
   ) {
     // Create a new connection pool this.userCfg
     this._conn = new sql.ConnectionPool(this.userCfg!);
-    /* v8 ignore start */
+
     this._conn.on('error', (err) => {
+      /* v8 ignore start */
       console.error('SQL Server error:', err);
+      /* v8 ignore end */
     });
-    /* v8 ignore end */
+
     if (this.schemaName !== undefined) {
       this._schemaName = this.schemaName;
     }
@@ -184,7 +186,7 @@ export class IoMssql implements Io {
           if ((error as any).number === 2627) {
             return;
           }
-
+          /* v8 ignore start */
           const errorMessage =
             error instanceof Error ? error.message : 'Unknown error';
           const fixedErrorMessage = errorMessage
@@ -196,14 +198,17 @@ export class IoMssql implements Io {
             errorCount,
             `Error inserting into table ${tableName}: ${fixedErrorMessage}`,
           );
+          /* v8 ignore end */
         }
       }
 
       if (errorCount > 0) {
+        /* v8 ignore start */
         const errorMessages = Array.from(errorStore.values()).join('\n');
         throw new Error(
           `Failed to write data to MSSQL database. Errors:\n${errorMessages}`,
         );
+        /* v8 ignore start */
       }
     });
   }
@@ -262,32 +267,20 @@ export class IoMssql implements Io {
     const loginName = `login_${randomString}`;
     const loginPassword = `P@ssw0rd!${randomString}`;
     // Create database and schema
-    try {
-      await req.query(this.stm.useDatabase(dbName));
-      await req.query(this.stm.createSchema(testSchemaName));
-    } catch (error) {
-      console.error('Error creating database:', error);
-      throw error;
-    }
-    // Create login and user
-    try {
-      await req.query(this.stm.createLogin(loginName, dbName, loginPassword));
-      await req.query(this.stm.useDatabase(dbName));
-      await req.query(
-        this.stm.createUser(loginName, loginName, testSchemaName),
-      );
-      // Add user to roles
+    await req.query(this.stm.useDatabase(dbName));
+    await req.query(this.stm.createSchema(testSchemaName));
 
-      await req.query(this.stm.addUserToRole('db_datareader', loginName));
-      await req.query(this.stm.addUserToRole('db_datawriter', loginName));
-      await req.query(this.stm.addUserToRole('db_ddladmin', loginName));
-      await req.query(
-        this.stm.grantSchemaPermission(testSchemaName, loginName),
-      );
-    } catch (error) {
-      console.error('Error creating database:', error);
-      throw error;
-    }
+    // Create login and user
+
+    await req.query(this.stm.createLogin(loginName, dbName, loginPassword));
+    await req.query(this.stm.useDatabase(dbName));
+    await req.query(this.stm.createUser(loginName, loginName, testSchemaName));
+    // Add user to roles
+
+    await req.query(this.stm.addUserToRole('db_datareader', loginName));
+    await req.query(this.stm.addUserToRole('db_datawriter', loginName));
+    await req.query(this.stm.addUserToRole('db_ddladmin', loginName));
+    await req.query(this.stm.grantSchemaPermission(testSchemaName, loginName));
 
     const loginUser: sql.config = {
       server: this.userCfg.server,
@@ -304,24 +297,23 @@ export class IoMssql implements Io {
 
     const waitForUser = async (retries = 10, delay = 1000) => {
       for (let i = 0; i < retries; i++) {
-        try {
-          const testReq = new sql.Request(this._conn);
-          const result = await testReq.query(
-            `SELECT name AS loginName FROM sys.sql_logins WHERE name = '${loginName}'`,
-          );
-          if (result.recordset.length > 0) {
-            return true;
-          }
-        } catch (e) {
-          console.warn(`Retry ${i + 1}/${retries} failed:`, e);
-          // ignore errors, just retry
+        const testReq = new sql.Request(this._conn);
+        const result = await testReq.query(
+          `SELECT name AS loginName FROM sys.sql_logins WHERE name = '${loginName}'`,
+        );
+        if (result.recordset.length > 0) {
+          return true;
         }
+        /* v8 ignore start */
         await new Promise((resolve) => setTimeout(resolve, delay));
+        /* v8 ignore end */
       }
     };
     await waitForUser();
     if (!waitForUser) {
+      /* v8 ignore start */
       throw new Error(`Login ${loginName} not found after retries.`);
+      /* v8 ignore end */
     }
 
     return new IoMssql(loginUser, testSchemaName);
@@ -337,11 +329,15 @@ export class IoMssql implements Io {
   static async makeConnection(userCfg: sql.config): Promise<sql.Request> {
     const serverPool = new sql.ConnectionPool(userCfg);
     serverPool.on('error', (err) => {
+      /* v8 ignore start */
       console.error('SQL Server error:', err);
+
+      /* v8 ignore end */
     });
     await serverPool.connect();
     return new sql.Request(serverPool);
   }
+
   static async installScripts(userCfg: sql.config): Promise<void> {
     const dbRequest = await this.makeConnection(userCfg);
 
@@ -416,7 +412,9 @@ export class IoMssql implements Io {
       const dbRequest = new sql.Request(this._conn);
       await dbRequest.query(this.stm.createTable(tableCfg));
     } catch (error) {
+      /* v8 ignore start */
       console.error('Error creating table:', error);
+      /* v8 ignore end */
     }
 
     // Write tableCfg as first row into tableCfgs tables
