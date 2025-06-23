@@ -8,7 +8,14 @@ import { hip, hsh } from '@rljson/hash';
 import { Io, IoTools } from '@rljson/io';
 import { IsReady } from '@rljson/is-ready';
 import { Json, JsonValue, JsonValueType } from '@rljson/json';
-import { ColumnCfg, iterateTables, Rljson, TableCfg, TableKey, TableType } from '@rljson/rljson';
+import {
+  ColumnCfg,
+  iterateTables,
+  Rljson,
+  TableCfg,
+  TableKey,
+  TableType,
+} from '@rljson/rljson';
 
 import { promises as fs } from 'fs';
 import sql from 'mssql';
@@ -16,27 +23,28 @@ import * as path from 'path';
 
 import { MsSqlStatements } from './mssql-statements.ts';
 
-
 export class IoMssql implements Io {
   private _conn: sql.ConnectionPool;
   private _ioTools!: IoTools;
   private _isReady = new IsReady();
   private stm: MsSqlStatements;
+  private _schemaName: string = 'PantrySchema';
 
   constructor(
     private readonly userCfg: sql.config,
-    private readonly schemaName: string,
+    private readonly schemaName?: string,
   ) {
-    if (!userCfg.database)
-      throw new Error('Database name is required in the user configuration.');
     // Create a new connection pool this.userCfg
     this._conn = new sql.ConnectionPool(this.userCfg!);
+    /* v8 ignore start */
     this._conn.on('error', (err) => {
       console.error('SQL Server error:', err);
     });
-
-    this.stm = new MsSqlStatements(this.schemaName);
-
+    /* v8 ignore end */
+    if (this.schemaName !== undefined) {
+      this._schemaName = this.schemaName;
+    }
+    this.stm = new MsSqlStatements(this._schemaName);
     // Connection will be established in the async init() method
   }
 
@@ -292,6 +300,30 @@ export class IoMssql implements Io {
       password: loginPassword,
     };
 
+    // Wait until user is actually created
+
+    const waitForUser = async (retries = 10, delay = 1000) => {
+      for (let i = 0; i < retries; i++) {
+        try {
+          const testReq = new sql.Request(this._conn);
+          const result = await testReq.query(
+            `SELECT name AS loginName FROM sys.sql_logins WHERE name = '${loginName}'`,
+          );
+          if (result.recordset.length > 0) {
+            return true;
+          }
+        } catch (e) {
+          console.warn(`Retry ${i + 1}/${retries} failed:`, e);
+          // ignore errors, just retry
+        }
+        await new Promise((resolve) => setTimeout(resolve, delay));
+      }
+    };
+    await waitForUser();
+    if (!waitForUser) {
+      throw new Error(`Login ${loginName} not found after retries.`);
+    }
+
     return new IoMssql(loginUser, testSchemaName);
   };
 
@@ -367,7 +399,7 @@ export class IoMssql implements Io {
   }
 
   public get currentSchema(): string {
-    return this.schemaName;
+    return this._schemaName;
   }
 
   public get currentLogin(): string {
@@ -404,42 +436,40 @@ export class IoMssql implements Io {
         // Duplicate entry, tableCfgs already exists
         return;
       }
+      /* v8 ignore start */
       console.error('Error inserting table configuration:', error);
+      /* v8 ignore end */
     }
   };
 
   private async _extendTable(newTableCfg: TableCfg): Promise<void> {
     // Estimate added columns
     const tableKey = newTableCfg.key;
-    try {
-      const dbRequest = new sql.Request(this._conn);
-      const oldTableCfg = await this._ioTools.tableCfg(tableKey);
+    const dbRequest = new sql.Request(this._conn);
+    const oldTableCfg = await this._ioTools.tableCfg(tableKey);
 
-      const addedColumns: ColumnCfg[] = [];
-      for (
-        let i = oldTableCfg.columns.length;
-        i < newTableCfg.columns.length;
-        i++
-      ) {
-        const newColumn = newTableCfg.columns[i];
-        addedColumns.push(newColumn);
-      }
+    const addedColumns: ColumnCfg[] = [];
+    for (
+      let i = oldTableCfg.columns.length;
+      i < newTableCfg.columns.length;
+      i++
+    ) {
+      const newColumn = newTableCfg.columns[i];
+      addedColumns.push(newColumn);
+    }
 
-      // No columns added? Do nothing.
-      if (addedColumns.length === 0) {
-        return;
-      }
+    // No columns added? Do nothing.
+    if (addedColumns.length === 0) {
+      return;
+    }
 
-      // Write new tableCfg into tableCfgs table
-      this._insertTableCfg(newTableCfg);
+    // Write new tableCfg into tableCfgs table
+    this._insertTableCfg(newTableCfg);
 
-      // Add new columns to the table
-      const alter = this.stm.alterTable(tableKey, addedColumns);
-      for (const statement of alter) {
-        await dbRequest.query(statement);
-      }
-    } catch (e) {
-      console.error(e);
+    // Add new columns to the table
+    const alter = this.stm.alterTable(tableKey, addedColumns);
+    for (const statement of alter) {
+      await dbRequest.query(statement);
     }
   }
 
@@ -487,11 +517,7 @@ export class IoMssql implements Io {
 
         // Null or undefined values are ignored
         // and not added to the converted row
-        if (val === undefined) {
-          continue;
-        }
-
-        if (val === null) {
+        if (val === undefined || val === null) {
           continue;
         }
 

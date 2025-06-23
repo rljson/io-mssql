@@ -31,7 +31,7 @@ class MyIoTestSetup implements IoTestSetup {
   mio: IoMssql;
 
   async beforeAll(): Promise<void> {
-    IoMssql.installScripts(this.userCfg);
+    // IoMssql.installScripts(this.userCfg);
     // No setup needed before all tests
     this.masterMind = new IoMssql(this.userCfg, 'PantrySchema');
   }
@@ -55,8 +55,8 @@ class MyIoTestSetup implements IoTestSetup {
 
   async afterAll(): Promise<void> {
     // Clean up environment after all tests
-    await IoMssql.dropTestLogins(this.userCfg);
-    await IoMssql.dropTestSchemas(this.userCfg);
+    // await IoMssql.dropTestLogins(this.userCfg);
+    // await IoMssql.dropTestSchemas(this.userCfg);
   }
 
   get io(): Io {

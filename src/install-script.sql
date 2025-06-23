@@ -38,7 +38,7 @@ DECLARE @sql nvarchar(max) = N''
 
       -- Drop all tables
       SET @sql = N'';
-      SELECT @sql += 'DROP TABLE [' + s.name + '].[' + t.name + '];'
+      SELECT @sql += 'DROP TABLE IF EXISTS [' + s.name + '].[' + t.name + '];'
       FROM sys.tables t
       INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
       WHERE s.name = @SchemaName;

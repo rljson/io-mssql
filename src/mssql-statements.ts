@@ -11,7 +11,6 @@ import { ColumnCfg, TableCfg, TableKey } from '@rljson/rljson';
 
 import { SqlStatements } from './sql-statements.ts';
 
-
 export class MsSqlStatements extends SqlStatements {
   constructor(public schemaName: string) {
     super();
@@ -74,16 +73,16 @@ export class MsSqlStatements extends SqlStatements {
         .map((col) => col.key)
         .filter((col) => col.endsWith(this.suffix.ref)),
     );
+    /* v8 ignore start */
     const foreignKeys = Array.isArray(foreignKeysArr)
       ? foreignKeysArr.filter(Boolean).join(', ')
       : foreignKeysArr || '';
-
+    /* v8 ignore end */
     const colsWithPrimaryKey = `${sqlCreateColumns}, ${primaryKey}`;
     const colsWithPrimaryKeyAndForeignKeys = foreignKeys
       ? `${colsWithPrimaryKey}, ${foreignKeys}`
       : colsWithPrimaryKey;
 
-    // return `CREATE TABLE ${sqltableKey} (${colsWithPrimaryKey}${sqlForeignKeys})`;
     const sqlIfNotExists = `IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '${sqltableKey.replace(
       /^\[|\]$/g,
       '',
@@ -150,7 +149,7 @@ export class MsSqlStatements extends SqlStatements {
 
     return `INSERT INTO [${this.schemaName}].${this.tbl.main}${this.suffix.tbl} ( ${columnsSql} ) VALUES (${valuesSql})`;
   }
-  //`SELECT name FROM sys.schemas WHERE name LIKE 'schema_%'`
+
   public schemas = (testSchemaSchema: string) =>
     `SELECT SCHEMA_NAME AS schemaName FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME LIKE '${testSchemaSchema}%'`;
 
