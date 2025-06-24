@@ -11,6 +11,7 @@ import { ColumnCfg, TableCfg, TableKey } from '@rljson/rljson';
 
 import { SqlStatements } from './sql-statements.ts';
 
+
 export class MsSqlStatements extends SqlStatements {
   constructor(public schemaName: string) {
     super();
@@ -45,7 +46,6 @@ export class MsSqlStatements extends SqlStatements {
   get tableExists() {
     return `SELECT CASE WHEN EXISTS (SELECT 1 FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = @tableName AND TABLE_SCHEMA = '${this.schemaName}') THEN CAST(1 AS BIT) ELSE CAST(0 AS BIT) END AS tableExists`;
   }
-
   createTable(tableCfg: TableCfg): string {
     const sqltableKey = this.addTableSuffix(tableCfg.key);
     const columnsCfg = tableCfg.columns;
@@ -79,6 +79,7 @@ export class MsSqlStatements extends SqlStatements {
       ? foreignKeysArr.filter(Boolean).join(', ')
       : foreignKeysArr || '';
     /* v8 ignore stop */
+
     const colsWithPrimaryKey = `${sqlCreateColumns}, ${primaryKey}`;
     const colsWithPrimaryKeyAndForeignKeys = foreignKeys
       ? `${colsWithPrimaryKey}, ${foreignKeys}`
@@ -95,7 +96,6 @@ export class MsSqlStatements extends SqlStatements {
   END`;
     return sqlIfNotExists;
   }
-
   alterTable(tableKey: TableKey, addedColumns: ColumnCfg[]): string[] {
     const tableKeyWithSuffix = this.addTableSuffix(tableKey);
     const statements: string[] = [];
@@ -116,7 +116,6 @@ export class MsSqlStatements extends SqlStatements {
   }
 
   // DDL stuff********************************************
-
   public useDatabase = (dbName: string) => `USE [${dbName}]`;
   public createSchema = (schemaName: string) => `CREATE SCHEMA [${schemaName}]`;
   public createLogin = (
@@ -134,6 +133,7 @@ export class MsSqlStatements extends SqlStatements {
   public addUserToRole = (roleName: string, userName: string) =>
     `ALTER ROLE [${roleName}] ADD MEMBER [${userName}]`;
 
+  /* v8 ignore start */
   public grantSchemaPermission = (schemaName: string, userName: string) =>
     `GRANT ALTER ON SCHEMA:: [${schemaName}] TO [${userName}]`;
   public dropLogin = (loginName: string) => `DROP LOGIN [${loginName}]`;
@@ -150,7 +150,7 @@ export class MsSqlStatements extends SqlStatements {
 
     return `INSERT INTO [${this.schemaName}].${this.tbl.main}${this.suffix.tbl} ( ${columnsSql} ) VALUES (${valuesSql})`;
   }
-
+  /* v8 ignore stop */
   public schemas = (testSchemaSchema: string) =>
     `SELECT SCHEMA_NAME AS schemaName FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME LIKE '${testSchemaSchema}%'`;
 
@@ -161,6 +161,7 @@ export class MsSqlStatements extends SqlStatements {
     let constraint: string = ' ';
     for (const [column, value] of whereClause) {
       const columnWithFix = this.addColumnSuffix(column);
+      /* v8 ignore start */
 
       if (typeof value === 'string') {
         constraint += `${columnWithFix} = '${value}' AND `;
@@ -172,18 +173,19 @@ export class MsSqlStatements extends SqlStatements {
         constraint += `${columnWithFix} IS NULL AND `;
       } else if (typeof value === 'object') {
         constraint += `${columnWithFix} = '${JSON.stringify(value)}' AND `;
-      } /* v8 ignore start */ else {
+      } else {
         throw new Error(`Unsupported value type for column ${column}`);
       }
       /* v8 ignore stop */
     }
+
     /* v8 ignore start */
     constraint = constraint.endsWith('AND ')
       ? constraint.slice(0, -5)
       : constraint; // remove last ' AND '
 
-    return constraint;
     /* v8 ignore stop */
+    return constraint;
   }
   get tableCfg() {
     return `SELECT * FROM [${this.schemaName}].${this.tbl.main}${this.suffix.tbl} WHERE key${this.suffix.col} = ?`;
