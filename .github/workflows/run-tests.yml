@@ -14,14 +14,33 @@ jobs:
   build:
     name: Build and Test
     runs-on: ubuntu-latest
-
+    # new start
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2019-latest
+        env:
+          SA_PASSWORD: '0I2tV9(F0V$+Hv@G'
+          ACCEPT_EULA: 'Y'
+        ports:
+          - 1433:1433
+        options: >-
+          --health-cmd "exit 0"
+          --health-interval 10s
+          --health-timeout 5s
+          --health-retries 3
+    # new end
     strategy:
       matrix:
         node-version: [22.x]
 
     steps:
+      - name: Wait for MSSQL to be ready
+        run: |
+          for i in {1..30}; do
+            /opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P "YourStrong!Passw0rd" -Q "SELECT 1" && break
+            sleep 1
+          done
       - uses: actions/checkout@v4
-
       # Corepack aktivieren, um sicherzustellen, dass pnpm funktioniert
       - name: Enable Corepack
         run: corepack enable
