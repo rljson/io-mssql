@@ -39,7 +39,7 @@ by your new pull request title.
 ## Create a feature branch
 
 ```bash
-node scripts/create-branch.js "Compare goldens based on json and not strings "
+node scripts/create-branch.js "Initial branch"
 ```
 
 ## Update dependencies
@@ -65,7 +65,7 @@ In Vscode, press
 
 ```bash
 git add .
-git commit -am"Compare goldens based on json and not strings "
+git commit -am"Initial branch"
 ```
 
 ## Increase version
@@ -96,7 +96,7 @@ node scripts/push-branch.js
 ## Create a pull request
 
 ```bash
-gh pr create --base main --title "Compare goldens based on json and not strings " --body " "
+gh pr create --base main --title "Initial branch" --body " "
 ```
 
 ## Code review
