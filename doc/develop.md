@@ -33,13 +33,13 @@ git pull
 
 ## Set pull request title
 
-Replace `Compare goldens based on json and not strings` here and below
+Replace `Connect to container` here and below
 by your new pull request title.
 
 ## Create a feature branch
 
 ```bash
-node scripts/create-branch.js "Initial branch"
+node scripts/create-branch.js "Connect to container"
 ```
 
 ## Update dependencies
@@ -65,7 +65,7 @@ In Vscode, press
 
 ```bash
 git add .
-git commit -am"Initial branch"
+git commit -am"Connect to container"
 ```
 
 ## Increase version
@@ -96,7 +96,7 @@ node scripts/push-branch.js
 ## Create a pull request
 
 ```bash
-gh pr create --base main --title "Initial branch" --body " "
+gh pr create --base main --title "Connect to container" --body " "
 ```
 
 ## Code review
