@@ -36,17 +36,6 @@ describe('IoMssql', () => {
     },
   };
 
-  // const adminCfg: sql.config = {
-  //   server: 'localhost\\LOCALTESTSERVER',
-  //   database: 'CDM-Test',
-  //   options: {
-  //     encrypt: true,
-  //     trustServerCertificate: true,
-  //   },
-  //   user: 'CDM-Login',
-  //   password: 'OneTwoThree',
-  // };
-
   beforeAll(async () => {
     // await IoMssql.installScripts(adminCfg);
     await IoMssql.dropTestLogins(adminCfg);

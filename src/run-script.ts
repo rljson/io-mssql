@@ -39,7 +39,18 @@ export async function runScript(
     } catch (error) {
       console.error('Error executing SQL batch:', error);
       if (error instanceof Error) {
-        throw error.message;
+        let errorMsg = error.message;
+        // Check for precedingErrors property
+        if (
+          (error as any).precedingErrors &&
+          Array.isArray((error as any).precedingErrors)
+        ) {
+          const preceding = (error as any).precedingErrors
+            .map((e: Error) => e.message)
+            .join('\n');
+          errorMsg += '\nPreceding Errors:\n' + preceding;
+        }
+        throw new Error(errorMsg);
       } else {
         throw new Error(String(error));
       }

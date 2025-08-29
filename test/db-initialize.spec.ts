@@ -11,8 +11,8 @@ import type { config as SqlConfig } from 'mssql';
 
 let adminCfg: SqlConfig;
 
-const testDbName = 'TestDbInithh';
-const testSchemaName = 'TestSchemahh';
+const testDbName = 'TestDb';
+const testSchemaName = 'PantrySchema';
 
 beforeAll(() => {
   adminCfg = {
@@ -35,21 +35,24 @@ beforeEach(async () => {
   await DbInit.createSchema(adminCfg, testDbName, testSchemaName);
 });
 describe('DbInit', () => {
-  it('should create a database if it does not exist', async () => {
+  it('should not create an existing, but drop a database', async () => {
     const x = await DbInit.createDatabase(adminCfg, testDbName);
     expect(x[0]).toBe(`Database ${testDbName} already exists`);
+
+    const y = await DbInit.dropDatabase(adminCfg, testDbName);
+    expect(y[0]).toBe(`Database ${testDbName} dropped`);
   });
 
-  it('should create a schema in the database', async () => {
+  it('should not create an existing, but drop a schema', async () => {
     const x = await DbInit.createSchema(adminCfg, testDbName, testSchemaName);
     expect(x[0]).toBe(`Schema ${testSchemaName} already exists`);
-    // Optionally, verify the schema exists using a query here
+
+    const y = await DbInit.dropSchema(adminCfg, testDbName, testSchemaName);
+    expect(y[0]).toBe(`Schema ${testSchemaName} dropped`);
   });
 
   it('should execute dropLogins without error', async () => {
-    await expect(
-      DbInit.dropLogins(adminCfg, testSchemaName),
-    ).resolves.toBeUndefined();
-    // Optionally, verify constraints are dropped using a query here
+    const x = await DbInit.dropLogins(adminCfg, testDbName, testSchemaName);
+    expect(x[0]).toBe(`Procedure to drop logins created`);
   });
 });
