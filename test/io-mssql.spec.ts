@@ -23,16 +23,29 @@ import { IoMssql } from '../src/io-mssql'; // Adjust the path as needed
 
 describe('IoMssql', () => {
   let ioSql: IoMssql;
+
   const adminCfg: sql.config = {
-    server: 'localhost\\LOCALTESTSERVER',
-    database: 'CDM-Test',
+    user: 'sa',
+    password: 'Password123!',
+    server: 'localhost', // or the IP of your container host
+    port: 1431,
+    database: 'master', // or your specific DB name
     options: {
-      encrypt: true,
-      trustServerCertificate: true,
+      encrypt: false, // set to true if using SSL
+      trustServerCertificate: true, // needed for local dev
     },
-    user: 'CDM-Login',
-    password: 'OneTwoThree',
   };
+
+  // const adminCfg: sql.config = {
+  //   server: 'localhost\\LOCALTESTSERVER',
+  //   database: 'CDM-Test',
+  //   options: {
+  //     encrypt: true,
+  //     trustServerCertificate: true,
+  //   },
+  //   user: 'CDM-Login',
+  //   password: 'OneTwoThree',
+  // };
 
   beforeAll(async () => {
     // await IoMssql.installScripts(adminCfg);
