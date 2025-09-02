@@ -3,6 +3,7 @@ import sql from 'mssql';
 export async function runScript(
   config: sql.config,
   script: string,
+  dbName: string,
 ): Promise<string[]> {
   let pool: sql.ConnectionPool | undefined;
   // Connect to SQL Server
@@ -23,23 +24,25 @@ export async function runScript(
     .map((batch) => batch.trim())
     .filter((batch) => batch.length > 0);
 
+  // Set the database context
+  if (!batches[0].startsWith('USE master')) {
+    await pool.request().query(`USE [${dbName}];`);
+  }
+
   // Run each batch sequentially
-  const result: string[] = [];
+  const result: (sql.IRecordSet<any> | string)[] = [];
   for (const batch of batches) {
     try {
       const batchResult = await pool.request().batch(batch);
-      if (
-        batchResult &&
-        batchResult.recordset &&
-        batchResult.recordset[0] &&
-        batchResult.recordset[0].Status !== undefined
-      ) {
-        result.push(batchResult.recordset[0].Status);
+      if (batchResult && batchResult.recordset && batchResult.recordset[0]) {
+        for (const row of batchResult.recordset) {
+          result.push(row);
+        }
       }
     } catch (error) {
       console.error('Error executing SQL batch:', error);
       if (error instanceof Error) {
-        let errorMsg = error.message;
+        result.push(error.message);
         // Check for precedingErrors property
         if (
           (error as any).precedingErrors &&
@@ -48,9 +51,8 @@ export async function runScript(
           const preceding = (error as any).precedingErrors
             .map((e: Error) => e.message)
             .join('\n');
-          errorMsg += '\nPreceding Errors:\n' + preceding;
+          result.push(preceding);
         }
-        throw new Error(errorMsg);
       } else {
         throw new Error(String(error));
       }
@@ -58,5 +60,7 @@ export async function runScript(
   }
 
   await pool.close();
-  return result;
+  return result.map((item) =>
+    typeof item === 'string' ? item : JSON.stringify(item),
+  );
 }

@@ -120,8 +120,8 @@ export class MsSqlStatements extends SqlStatements {
   public createSchema = (schemaName: string) => `CREATE SCHEMA [${schemaName}]`;
   public createLogin = (
     loginName: string,
-    dbName: string,
     loginPassword: string,
+    dbName: string,
   ) =>
     `CREATE LOGIN [${loginName}] WITH PASSWORD='${loginPassword}', DEFAULT_DATABASE=[${dbName}], DEFAULT_LANGUAGE=[us_english], CHECK_EXPIRATION=OFF, CHECK_POLICY=OFF;`;
   public createUser = (

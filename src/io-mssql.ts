@@ -8,20 +8,14 @@ import { hip, hsh } from '@rljson/hash';
 import { Io, IoTools } from '@rljson/io';
 import { IsReady } from '@rljson/is-ready';
 import { Json, JsonValue, JsonValueType } from '@rljson/json';
-import {
-  ColumnCfg,
-  iterateTables,
-  Rljson,
-  TableCfg,
-  TableKey,
-  TableType,
-} from '@rljson/rljson';
+import { ColumnCfg, iterateTables, Rljson, TableCfg, TableKey, TableType } from '@rljson/rljson';
 
 import { promises as fs } from 'fs';
 import sql from 'mssql';
 import * as path from 'path';
 
 import { MsSqlStatements } from './mssql-statements.ts';
+
 
 export class IoMssql implements Io {
   private _conn: sql.ConnectionPool;
@@ -377,14 +371,12 @@ export class IoMssql implements Io {
       `EXEC PantrySchema.DropCurrentConstraints [${schemaName}]`,
     );
   }
-  static async dropCurrentSchema(
+  static async DropSchema(
     userCfg: sql.config,
     schemaName: string,
   ): Promise<void> {
     const dbRequest = await this.makeConnection(userCfg);
-    await dbRequest.query(
-      `EXEC PantrySchema.DropCurrentSchema [${schemaName}]`,
-    );
+    await dbRequest.query(`EXEC PantrySchema.DropSchema [${schemaName}]`);
   }
   static async dropCurrentLogin(
     userCfg: sql.config,

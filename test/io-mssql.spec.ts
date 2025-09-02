@@ -9,6 +9,7 @@ import {
   it,
 } from 'vitest';
 
+import { DbInit } from '../src/db-init';
 import { IoMssql } from '../src/io-mssql'; // Adjust the path as needed
 
 // @license
@@ -36,11 +37,15 @@ describe('IoMssql', () => {
     },
   };
 
+  const testDbName = 'TestDb';
+  const testSchemaName = 'PantrySchema';
+
   beforeAll(async () => {
-    // await IoMssql.installScripts(adminCfg);
-    await IoMssql.dropTestLogins(adminCfg);
-    await IoMssql.dropTestSchemas(adminCfg);
-    console.log('IoMssql installation scripts executed successfully.');
+    await DbInit.dropDatabase(adminCfg, testDbName);
+    await DbInit.createDatabase(adminCfg, testDbName);
+    await DbInit.useDatabase(adminCfg, testDbName);
+    await DbInit.createSchema(adminCfg, testDbName, testSchemaName);
+    console.log('Installation scripts executed successfully.');
   });
 
   beforeEach(async () => {
