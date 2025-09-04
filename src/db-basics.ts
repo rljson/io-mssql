@@ -3,7 +3,7 @@ import sql from 'mssql';
 import { runScript } from './run-script.ts';
 
 /// Database Initialization (create database, schema etc.)
-export class DbInit {
+export class DbBasics {
   static _mainSchema: string = 'main';
   static _dropConstraintsProc: string = 'DropCurrentConstraints';
   static _dropObjectsProc: string = 'DropCurrentObjects';
@@ -440,7 +440,7 @@ export class DbInit {
       loginName,
       loginName,
     );
-    await DbInit.installProcedures(adminConfig, dbName);
+    await DbBasics.installProcedures(adminConfig, dbName);
   }
 
   static async installProcedures(adminConfig: sql.config, dbName: string) {

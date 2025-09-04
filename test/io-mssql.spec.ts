@@ -9,7 +9,7 @@ import {
   it,
 } from 'vitest';
 
-import { DbInit } from '../src/db-init';
+import { DbBasics } from '../src/db-basics';
 import { IoMssql } from '../src/io-mssql'; // Adjust the path as needed
 
 // @license
@@ -41,11 +41,11 @@ describe('IoMssql', () => {
   const testSchemaName = 'PantrySchema';
 
   beforeAll(async () => {
-    console.log(await DbInit.dropDatabase(adminCfg, testDbName));
-    console.log(await DbInit.createDatabase(adminCfg, testDbName));
-    console.log(await DbInit.useDatabase(adminCfg, testDbName));
+    console.log(await DbBasics.dropDatabase(adminCfg, testDbName));
+    console.log(await DbBasics.createDatabase(adminCfg, testDbName));
+    console.log(await DbBasics.useDatabase(adminCfg, testDbName));
     console.log(
-      await DbInit.createSchema(adminCfg, testDbName, testSchemaName),
+      await DbBasics.createSchema(adminCfg, testDbName, testSchemaName),
     );
     console.log('Installation scripts executed successfully.');
   });
@@ -61,7 +61,7 @@ describe('IoMssql', () => {
     // const userCanLogin = await ioSql.isUserLoggedIn();
     // expect(userCanLogin).toBe(true);
 
-    const getUsers = await DbInit.getUsers(adminCfg, testDbName);
+    const getUsers = await DbBasics.getUsers(adminCfg, testDbName);
     const userList = Array.isArray(getUsers) ? getUsers : [getUsers];
 
     userList.forEach((user, idx) => {
@@ -135,7 +135,7 @@ describe('IoMssql', () => {
 
   it('should execute installScripts without throwing', async () => {
     await expect(
-      DbInit.installProcedures(adminCfg, testDbName, testSchemaName),
+      DbBasics.installProcedures(adminCfg, testDbName),
     ).resolves.not.toThrow();
   });
 });

@@ -21,7 +21,7 @@ import { promises as fs } from 'fs';
 import sql from 'mssql';
 import * as path from 'path';
 
-import { DbInit } from './db-init.ts';
+import { DbBasics } from './db-basics.ts';
 import { MsSqlStatements } from './mssql-statements.ts';
 
 export class IoMssql implements Io {
@@ -268,17 +268,22 @@ export class IoMssql implements Io {
     const loginName = `login_${randomString}`;
     const loginPassword = `P@ssw0rd!${randomString}`;
     // Create database and schema
-    console.log(await DbInit.createDatabase(this.userCfg, dbName));
+    console.log(await DbBasics.createDatabase(this.userCfg, dbName));
     console.log(
-      await DbInit.createSchema(this.userCfg, dbName, testSchemaName),
+      await DbBasics.createSchema(this.userCfg, dbName, testSchemaName),
     );
 
     // Create login and user
     console.log(
-      await DbInit.createLogin(this.userCfg, dbName, loginName, loginPassword),
+      await DbBasics.createLogin(
+        this.userCfg,
+        dbName,
+        loginName,
+        loginPassword,
+      ),
     );
     console.log(
-      await DbInit.createUser(
+      await DbBasics.createUser(
         this.userCfg,
         dbName,
         testSchemaName,
@@ -287,7 +292,7 @@ export class IoMssql implements Io {
       ),
     );
 
-    await DbInit.grantSchemaPermission(
+    await DbBasics.grantSchemaPermission(
       this.userCfg,
       dbName,
       testSchemaName,

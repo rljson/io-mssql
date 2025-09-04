@@ -1,7 +1,7 @@
 import sql from 'mssql';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { DbInit } from '../src/db-init';
+import { DbBasics } from '../src/db-basics';
 import { runScript } from '../src/run-script';
 
 // @license
@@ -28,7 +28,7 @@ beforeAll(() => {
 });
 
 beforeEach(async () => {
-  await DbInit.initDb(
+  await DbBasics.initDb(
     adminCfg,
     testDbName,
     testSchemaName,
@@ -36,17 +36,17 @@ beforeEach(async () => {
     testPassword,
   );
 });
-describe('DbInit', () => {
+describe('DbBasics', () => {
   describe('Database', () => {
     it('should not be created again', async () => {
-      const dbResult = await DbInit.createDatabase(adminCfg, testDbName);
+      const dbResult = await DbBasics.createDatabase(adminCfg, testDbName);
       expect(dbResult[0].toString()).toBe(
         JSON.stringify({ Status: `Database ${testDbName} already exists` }),
       );
     });
 
     it('should be dropped', async () => {
-      const x = await DbInit.dropDatabase(adminCfg, testDbName);
+      const x = await DbBasics.dropDatabase(adminCfg, testDbName);
       expect(x[0].toString()).toBe(
         JSON.stringify({ Status: `Database ${testDbName} dropped` }),
       );
@@ -54,7 +54,7 @@ describe('DbInit', () => {
 
     it('should drop a non-existing database gracefully', async () => {
       const dbName = 'NonExistentDb';
-      const result = await DbInit.dropDatabase(adminCfg, dbName);
+      const result = await DbBasics.dropDatabase(adminCfg, dbName);
       expect(result[0].toString()).toBe(
         JSON.stringify({ Status: `Database ${dbName} does not exist` }),
       );
@@ -62,12 +62,16 @@ describe('DbInit', () => {
   });
   describe('Schema', () => {
     it('should not add an existing schema', async () => {
-      const x = await DbInit.createSchema(adminCfg, testDbName, testSchemaName);
+      const x = await DbBasics.createSchema(
+        adminCfg,
+        testDbName,
+        testSchemaName,
+      );
       expect(x[0].toString()).toBe(
         JSON.stringify({ Status: `Schema ${testSchemaName} already exists` }),
       );
 
-      const y = await DbInit.dropSchema(adminCfg, testDbName, testSchemaName);
+      const y = await DbBasics.dropSchema(adminCfg, testDbName, testSchemaName);
       expect(y[0].toString()).toBe(
         JSON.stringify({ Status: `Schema ${testSchemaName} dropped` }),
       );
@@ -75,7 +79,11 @@ describe('DbInit', () => {
 
     it('should drop a non-existing schema gracefully', async () => {
       const schemaName = 'NonExistentSchema';
-      const result = await DbInit.dropSchema(adminCfg, testDbName, schemaName);
+      const result = await DbBasics.dropSchema(
+        adminCfg,
+        testDbName,
+        schemaName,
+      );
       expect(result[0].toString()).toBe(
         JSON.stringify({ Status: `Schema ${schemaName} does not exist` }),
       );
@@ -83,14 +91,14 @@ describe('DbInit', () => {
   });
   describe('Procedures and Users', () => {
     it('should create procedure dropLogins without error', async () => {
-      const x = await DbInit.createProcDropLogins(adminCfg, testDbName);
+      const x = await DbBasics.createProcDropLogins(adminCfg, testDbName);
       expect(x[0].toString()).toBe(
         JSON.stringify({ Status: `Procedure to drop logins created` }),
       );
     });
 
     it('should create and drop the dropObjects procedure', async () => {
-      const x = await DbInit.createProcDropObjects(adminCfg, testDbName);
+      const x = await DbBasics.createProcDropObjects(adminCfg, testDbName);
       expect(x[0].toString()).toBe(
         JSON.stringify({
           Status: `Procedure DropObjects for main created`,
@@ -98,7 +106,7 @@ describe('DbInit', () => {
       );
     });
     it('should create dropSchema procedure', async () => {
-      const x = await DbInit.createProcDropSchema(adminCfg, testDbName);
+      const x = await DbBasics.createProcDropSchema(adminCfg, testDbName);
       expect(x[0].toString()).toBe(
         JSON.stringify({
           Status: `Procedure DropCurrentSchema for main created`,
@@ -107,7 +115,7 @@ describe('DbInit', () => {
     });
 
     it('should create dropConstraints procedure', async () => {
-      const x = await DbInit.createProcDropConstraints(adminCfg, testDbName);
+      const x = await DbBasics.createProcDropConstraints(adminCfg, testDbName);
       expect(x[0].toString()).toBe(
         JSON.stringify({
           Status: `Procedure DropCurrentConstraints for main created`,
@@ -118,8 +126,8 @@ describe('DbInit', () => {
       const testUser = 'test_user';
 
       //  Login (drop first, then create)
-      await DbInit.dropLogin(adminCfg, testUser, testDbName);
-      const createLogin = await DbInit.createLogin(
+      await DbBasics.dropLogin(adminCfg, testUser, testDbName);
+      const createLogin = await DbBasics.createLogin(
         adminCfg,
         testDbName,
         testUser,
@@ -130,9 +138,9 @@ describe('DbInit', () => {
       );
 
       // User (drop first, then create)
-      await DbInit.dropUser(adminCfg, testUser, testDbName);
+      await DbBasics.dropUser(adminCfg, testUser, testDbName);
 
-      const createUser = await DbInit.createUser(
+      const createUser = await DbBasics.createUser(
         adminCfg,
         testDbName,
         testSchemaName,
@@ -144,7 +152,7 @@ describe('DbInit', () => {
       );
 
       // Get Users - check if the user is in the list
-      const getUsers = await DbInit.getUsers(adminCfg, testDbName);
+      const getUsers = await DbBasics.getUsers(adminCfg, testDbName);
       const userList = Array.isArray(getUsers) ? getUsers : [getUsers];
       // expect(userList.length).toEqual(5);
       userList.forEach((user, idx) => {
@@ -171,8 +179,8 @@ describe('DbInit', () => {
     });
     it('should add user to role', async () => {
       const testUser = 'test_user_role';
-      await DbInit.createLogin(adminCfg, testDbName, testUser, testPassword);
-      await DbInit.createUser(
+      await DbBasics.createLogin(adminCfg, testDbName, testUser, testPassword);
+      await DbBasics.createUser(
         adminCfg,
         testDbName,
         testSchemaName,
@@ -180,7 +188,7 @@ describe('DbInit', () => {
         testUser,
       );
       const roleName = 'db_datareader';
-      const result = await DbInit.addUserToRole(
+      const result = await DbBasics.addUserToRole(
         adminCfg,
         testDbName,
         roleName,
@@ -191,15 +199,15 @@ describe('DbInit', () => {
 
     it('should grant schema permission to user', async () => {
       const testUser = 'test_user_perm';
-      await DbInit.createLogin(adminCfg, testDbName, testUser, testPassword);
-      await DbInit.createUser(
+      await DbBasics.createLogin(adminCfg, testDbName, testUser, testPassword);
+      await DbBasics.createUser(
         adminCfg,
         testDbName,
         testSchemaName,
         testUser,
         testUser,
       );
-      const result = await DbInit.grantSchemaPermission(
+      const result = await DbBasics.grantSchemaPermission(
         adminCfg,
         testDbName,
         testSchemaName,
@@ -209,7 +217,7 @@ describe('DbInit', () => {
     });
     it('should drop a non-existing login gracefully', async () => {
       const loginName = 'NonExistentLogin';
-      const result = await DbInit.dropLogin(adminCfg, loginName, testDbName);
+      const result = await DbBasics.dropLogin(adminCfg, loginName, testDbName);
       expect(result[0].toString()).toBe(
         JSON.stringify({ Status: `LOGIN [${loginName}] DOES NOT EXIST` }),
       );
@@ -217,7 +225,7 @@ describe('DbInit', () => {
 
     it('should drop a non-existing user gracefully', async () => {
       const userName = 'NonExistentUser';
-      const result = await DbInit.dropUser(adminCfg, userName, testDbName);
+      const result = await DbBasics.dropUser(adminCfg, userName, testDbName);
       expect(result[0].toString()).toBe(
         JSON.stringify({ Status: `USER [${userName}] DOES NOT EXIST` }),
       );
@@ -225,8 +233,8 @@ describe('DbInit', () => {
 
     it('should not create an existing login', async () => {
       const testUser = 'test_user_exists';
-      await DbInit.createLogin(adminCfg, testDbName, testUser, testPassword);
-      const result = await DbInit.createLogin(
+      await DbBasics.createLogin(adminCfg, testDbName, testUser, testPassword);
+      const result = await DbBasics.createLogin(
         adminCfg,
         testDbName,
         testUser,
@@ -239,15 +247,15 @@ describe('DbInit', () => {
 
     it('should not create an existing user', async () => {
       const testUser = 'test_user_exists2';
-      await DbInit.createLogin(adminCfg, testDbName, testUser, testPassword);
-      await DbInit.createUser(
+      await DbBasics.createLogin(adminCfg, testDbName, testUser, testPassword);
+      await DbBasics.createUser(
         adminCfg,
         testDbName,
         testSchemaName,
         testUser,
         testUser,
       );
-      const result = await DbInit.createUser(
+      const result = await DbBasics.createUser(
         adminCfg,
         testDbName,
         testSchemaName,
@@ -265,32 +273,32 @@ describe('DbInit', () => {
       const dbName = 'InitDbTest';
       const schemaName = 'InitSchema';
       const loginName = 'init_user';
-      await DbInit.dropDatabase(adminCfg, dbName);
-      await DbInit.initDb(
+      await DbBasics.dropDatabase(adminCfg, dbName);
+      await DbBasics.initDb(
         adminCfg,
         dbName,
         schemaName,
         loginName,
         testPassword,
       );
-      const users = await DbInit.getUsers(adminCfg, dbName);
+      const users = await DbBasics.getUsers(adminCfg, dbName);
       expect(Array.isArray(users)).toBe(true);
     });
 
     it('should install procedures without error', async () => {
-      const result = await DbInit.installProcedures(adminCfg, testDbName);
+      const result = await DbBasics.installProcedures(adminCfg, testDbName);
       // No error expected, just check that it returns
       expect(result).toBeUndefined();
     });
     it('should drop procedures without error', async () => {
-      await DbInit.installProcedures(adminCfg, testDbName);
-      const result = await DbInit.dropProcedures(adminCfg, testDbName);
+      await DbBasics.installProcedures(adminCfg, testDbName);
+      const result = await DbBasics.dropProcedures(adminCfg, testDbName);
       expect(result).toBeUndefined();
     });
   });
   describe('Utility Functions', () => {
     it('should get table names (empty)', async () => {
-      const tables = await DbInit.getTableNames(
+      const tables = await DbBasics.getTableNames(
         adminCfg,
         testDbName,
         testSchemaName,
@@ -304,7 +312,7 @@ describe('DbInit', () => {
     it('should drop all tables` constraints', async () => {
       const createTable = `CREATE TABLE ${testSchemaName}.TestTable (ID INT PRIMARY KEY)`;
       await runScript(adminCfg, createTable, testDbName);
-      const result = await DbInit.dropConstraints(
+      const result = await DbBasics.dropConstraints(
         adminCfg,
         testDbName,
         testSchemaName,

@@ -7,7 +7,7 @@ import { Io, IoTestSetup } from '@rljson/io';
 // found in the LICENSE file in the root of this package.
 import sql from 'mssql';
 
-import { DbInit } from '../src/db-init';
+import { DbBasics } from '../src/db-basics';
 import { IoMssql } from '../src/io-mssql';
 
 // ..............................................................................
@@ -33,8 +33,8 @@ class MyIoTestSetup implements IoTestSetup {
   dbName = 'TestDb';
 
   async beforeAll(): Promise<void> {
-    await DbInit.createSchema(this.userCfg, this.dbName, 'main');
-    await DbInit.installProcedures(this.userCfg, this.dbName);
+    await DbBasics.createSchema(this.userCfg, this.dbName, 'main');
+    await DbBasics.installProcedures(this.userCfg, this.dbName);
     // No setup needed before all tests
     this.masterMind = new IoMssql(this.userCfg, 'main');
   }
@@ -48,8 +48,8 @@ class MyIoTestSetup implements IoTestSetup {
   async afterEach(): Promise<void> {
     // Clean up environment after each test
     const currentSchema = this.mio.currentSchema;
-    await DbInit.dropConstraints(this.userCfg, this.dbName, currentSchema);
-    await DbInit.dropSchema(this.userCfg, this.dbName, currentSchema);
+    await DbBasics.dropConstraints(this.userCfg, this.dbName, currentSchema);
+    await DbBasics.dropSchema(this.userCfg, this.dbName, currentSchema);
     const currentLogin = this.mio.currentLogin;
     await this.io.close().then(async () => {
       await IoMssql.dropCurrentLogin(this.userCfg, currentLogin);

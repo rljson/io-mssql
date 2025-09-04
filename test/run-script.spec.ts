@@ -1,7 +1,7 @@
 import sql from 'mssql';
 import { afterAll, beforeAll, describe, it } from 'vitest';
 
-import { DbInit } from '../src/db-init';
+import { DbBasics } from '../src/db-basics';
 import { runScript } from '../src/run-script';
 
 let adminCfg: sql.config;
@@ -10,7 +10,7 @@ const testDb = 'TestDb';
 // const testSchema = 'TestSchema';
 
 beforeAll(() => {
-  DbInit.createDatabase(adminCfg, testDb);
+  DbBasics.createDatabase(adminCfg, testDb);
   adminCfg = {
     user: 'sa',
     password: 'Password123!',
@@ -25,7 +25,7 @@ beforeAll(() => {
 });
 
 afterAll(async () => {
-  await DbInit.dropDatabase(adminCfg, testDb);
+  await DbBasics.dropDatabase(adminCfg, testDb);
 });
 
 describe('runScript', () => {
