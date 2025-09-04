@@ -41,10 +41,12 @@ describe('IoMssql', () => {
   const testSchemaName = 'PantrySchema';
 
   beforeAll(async () => {
-    await DbInit.dropDatabase(adminCfg, testDbName);
-    await DbInit.createDatabase(adminCfg, testDbName);
-    await DbInit.useDatabase(adminCfg, testDbName);
-    await DbInit.createSchema(adminCfg, testDbName, testSchemaName);
+    console.log(await DbInit.dropDatabase(adminCfg, testDbName));
+    console.log(await DbInit.createDatabase(adminCfg, testDbName));
+    console.log(await DbInit.useDatabase(adminCfg, testDbName));
+    console.log(
+      await DbInit.createSchema(adminCfg, testDbName, testSchemaName),
+    );
     console.log('Installation scripts executed successfully.');
   });
 
@@ -53,7 +55,19 @@ describe('IoMssql', () => {
     const masterMind = new IoMssql(adminCfg);
 
     // Create a new database for testing
-    ioSql = await masterMind.example();
+    ioSql = await masterMind.example(testDbName);
+
+    // check if the new user can log into the database
+    // const userCanLogin = await ioSql.isUserLoggedIn();
+    // expect(userCanLogin).toBe(true);
+
+    const getUsers = await DbInit.getUsers(adminCfg, testDbName);
+    const userList = Array.isArray(getUsers) ? getUsers : [getUsers];
+
+    userList.forEach((user, idx) => {
+      console.log(`User ${idx}:`, JSON.parse(user).name);
+    });
+
     await ioSql.init();
     await ioSql.isReady();
   });
@@ -107,12 +121,10 @@ describe('IoMssql', () => {
   });
 
   it('should return an error when the connection is closed', async () => {
-    const ioMssql = new IoMssql(adminCfg);
-    await ioMssql.init();
-    await ioMssql.close();
+    await ioSql.close();
     let error: unknown = null;
     try {
-      await ioMssql.isReady();
+      await ioSql.isReady();
     } catch (err) {
       error = err;
     }
@@ -122,6 +134,8 @@ describe('IoMssql', () => {
   });
 
   it('should execute installScripts without throwing', async () => {
-    await expect(IoMssql.installScripts(adminCfg)).resolves.not.toThrow();
+    await expect(
+      DbInit.installProcedures(adminCfg, testDbName, testSchemaName),
+    ).resolves.not.toThrow();
   });
 });

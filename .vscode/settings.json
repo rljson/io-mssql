@@ -534,5 +534,10 @@
     "upate",
     "yrqcs"
   ],
-  "editor.codeLens": false
+  "editor.codeLens": false,
+
+  "code-runner.executorMap": {
+    "typescript": "ts-node"
+  },
+  "code-runner.enableAppInsights": false
 }

@@ -1,11 +1,16 @@
 import sql from 'mssql';
-import { beforeAll, describe, it } from 'vitest';
+import { afterAll, beforeAll, describe, it } from 'vitest';
 
+import { DbInit } from '../src/db-init';
 import { runScript } from '../src/run-script';
 
 let adminCfg: sql.config;
 
+const testDb = 'TestDb';
+// const testSchema = 'TestSchema';
+
 beforeAll(() => {
+  DbInit.createDatabase(adminCfg, testDb);
   adminCfg = {
     user: 'sa',
     password: 'Password123!',
@@ -19,10 +24,14 @@ beforeAll(() => {
   };
 });
 
+afterAll(async () => {
+  await DbInit.dropDatabase(adminCfg, testDb);
+});
+
 describe('runScript', () => {
   it('should connect to SQL Server and execute a single batch', async () => {
     const script = 'SELECT 1';
-    await runScript(adminCfg, script);
+    await runScript(adminCfg, script, testDb);
   });
 
   it('should split script by GO and execute multiple batches', async () => {
@@ -33,6 +42,6 @@ describe('runScript', () => {
       GO -- comment
       SELECT 3
     `;
-    await runScript(adminCfg, script);
+    await runScript(adminCfg, script, testDb);
   });
 });

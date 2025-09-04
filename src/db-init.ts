@@ -4,6 +4,11 @@ import { runScript } from './run-script.ts';
 
 /// Database Initialization (create database, schema etc.)
 export class DbInit {
+  static _mainSchema: string = 'main';
+  static _dropConstraintsProc: string = 'DropCurrentConstraints';
+  static _dropObjectsProc: string = 'DropCurrentObjects';
+  static _dropLoginProc: string = 'DropCurrentLogins';
+  static _dropSchemaProc: string = 'DropCurrentSchema';
   //****Database */
   /// Create Database
   ///(the only situation where the master must be accessed first)
@@ -103,38 +108,24 @@ export class DbInit {
   static async createProcDropLogins(
     adminConfig: sql.config,
     dbName: string,
-    schemaName: string,
   ): Promise<string[]> {
     const script = `
-        CREATE OR ALTER PROCEDURE
-              ${schemaName}.DropCurrentConstraints(@SchemaName NVARCHAR(50))
-              AS
-        BEGIN
-        -- Drop all foreign key constraints
-        DECLARE @sql NVARCHAR(MAX) = N''
-              SELECT @sql += 'ALTER TABLE [' + s.name + '].[' + t.name + ']
-              DROP CONSTRAINT [' + f.name + '];'
-              FROM sys.foreign_keys f
-              INNER JOIN sys.tables t ON f.parent_object_id = t.object_id
-              INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
-              WHERE s.name = @SchemaName;
-              EXEC sp_executesql @sql;
-        END
-        GO --REM;
-        SELECT 'Procedure to drop logins created' AS Status;
-    `;
-    return await runScript(adminConfig, script, dbName);
-  }
-
-  static async dropProcDropLogins(
-    adminConfig: sql.config,
-    dbName: string,
-    schemaName: string,
-  ): Promise<string[]> {
-    const script = `
-    DROP PROCEDURE IF EXISTS [${schemaName}].[DropCurrentConstraints];
-    GO --REM
-    SELECT 'Procedure to drop logins dropped' AS Status;
+      CREATE OR ALTER PROCEDURE
+          ${this._mainSchema}.${this._dropConstraintsProc}( @SchemaName NVARCHAR(50))
+          AS
+      BEGIN
+      -- Drop all foreign key constraints
+      DECLARE @sql NVARCHAR(MAX) = N''
+          SELECT @sql += 'ALTER TABLE [' + s.name + '].[' + t.name + ']
+          DROP CONSTRAINT [' + f.name + '];'
+          FROM sys.foreign_keys f
+          INNER JOIN sys.tables t ON f.parent_object_id = t.object_id
+          INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
+          WHERE s.name = @SchemaName;
+          EXEC sp_executesql @sql;
+      END
+      GO --REM;
+      SELECT 'Procedure to drop logins created' AS Status;
     `;
     return await runScript(adminConfig, script, dbName);
   }
@@ -142,10 +133,9 @@ export class DbInit {
   static async createProcDropObjects(
     adminConfig: sql.config,
     dbName: string,
-    schemaName: string,
   ): Promise<string[]> {
     const script = `    CREATE OR ALTER   PROCEDURE
-      [${schemaName}].[DropObjects]
+      [${this._mainSchema}].[${this._dropObjectsProc}]
       AS
       -- Delete all schemas that have been created
       -- apart from the main schema
@@ -155,13 +145,13 @@ export class DbInit {
         DECLARE SchemaNames CURSOR FOR
         SELECT name
         FROM sys.schemas
-        WHERE name NOT IN ('dbo', 'guest', 'INFORMATION_SCHEMA', 'sys','${schemaName}');
+        WHERE name NOT IN ('dbo', 'guest', 'INFORMATION_SCHEMA', 'sys','${this._mainSchema}');
         OPEN SchemaNames
         FETCH NEXT FROM SchemaNames INTO @SchemaName
         WHILE @@FETCH_STATUS = 0
           BEGIN
           PRINT @SchemaName
-          EXEC ${schemaName}.DropSchema @SchemaName
+          EXEC ${this._mainSchema}.DropSchema @SchemaName
 
           FETCH NEXT FROM SchemaNames INTO @SchemaName
 
@@ -171,8 +161,8 @@ export class DbInit {
         DEALLOCATE SchemaNames
 
         END;
-GO --REM
-SELECT 'Procedure DropObjects for ${schemaName} created' AS Status;`;
+      GO --REM
+      SELECT 'Procedure DropObjects for ${this._mainSchema} created' AS Status;`;
 
     return await runScript(adminConfig, script, dbName);
   }
@@ -180,14 +170,13 @@ SELECT 'Procedure DropObjects for ${schemaName} created' AS Status;`;
   static async createProcDropSchema(
     adminConfig: sql.config,
     dbName: string,
-    schemaName: string,
   ): Promise<string[]> {
     const script = `
       CREATE OR ALTER PROCEDURE
-      PantrySchema.DropSchema (@SchemaName NVARCHAR(50))
-AS
-BEGIN
-DECLARE @sql nvarchar(max) = N''
+      ${this._mainSchema}.${this._dropSchemaProc} (@SchemaName NVARCHAR(50))
+      AS
+      BEGIN
+      DECLARE @sql nvarchar(max) = N''
  -- Drop all foreign key constraints
       SELECT @sql += 'ALTER TABLE [' + s.name + '].[' + t.name + '] DROP CONSTRAINT [' + f.name + '];'
       FROM sys.foreign_keys f
@@ -249,7 +238,7 @@ DECLARE @sql nvarchar(max) = N''
 
       END
       GO --REM
-      SELECT 'Procedure DropSchema for ${schemaName} created' AS Status;
+      SELECT 'Procedure ${this._dropSchemaProc} for ${this._mainSchema} created' AS Status;
     `;
     return await runScript(adminConfig, script, dbName);
   }
@@ -257,47 +246,47 @@ DECLARE @sql nvarchar(max) = N''
   static async createProcDropConstraints(
     adminConfig: sql.config,
     dbName: string,
-    schemaName: string,
   ): Promise<string[]> {
     const script = `
       CREATE OR ALTER PROCEDURE
-      ${schemaName}.DropConstraints (@TableName NVARCHAR(50))
-AS
-BEGIN
- DECLARE @sql NVARCHAR(MAX) = N''
-      SELECT @sql += 'ALTER TABLE [' + s.name + '].[' + t.name + '] DROP CONSTRAINT [' + f.name + '];'
-      FROM sys.foreign_keys f
-      INNER JOIN sys.tables t ON f.parent_object_id = t.object_id
-      INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
-      WHERE s.name = '${schemaName}' AND t.name = @TableName;
-      EXEC sp_executesql @sql;
-END
-GO --REM
-SELECT 'Procedure DropConstraints for ${schemaName} created' AS Status;
+      ${this._mainSchema}.${this._dropConstraintsProc} (@SchemaName NVARCHAR(50), @TableName NVARCHAR(50))
+      AS
+      BEGIN
+        DECLARE @sql NVARCHAR(MAX) = N''
+        DECLARE @FullName nvarchar(256) = QUOTENAME(@SchemaName) + '.' + QUOTENAME(@TableName);
+
+      -- SELECT Foreign Keys, Default Constraints, Check Constraints, Primary Keys, Unique Constraints
+      DECLARE @KeyName nvarchar(50)
+      DECLARE fkeys CURSOR FOR
+      SELECT name FROM sys.foreign_keys
+      WHERE parent_object_id = OBJECT_ID(@FullName)
+      UNION SELECT name FROM sys.default_constraints
+      WHERE parent_object_id = OBJECT_ID(@FullName)
+      UNION SELECT name FROM sys.check_constraints
+      WHERE parent_object_id = OBJECT_ID(@FullName)
+      UNION SELECT name FROM sys.key_constraints
+      WHERE parent_object_id = OBJECT_ID(@FullName)
+      OPEN fkeys
+      FETCH NEXT FROM fkeys INTO @KeyName
+
+      WHILE @@FETCH_STATUS = 0
+        BEGIN
+        SET @SQL = 'ALTER TABLE ' + @FullName + ' DROP CONSTRAINT [' + @KeyName + '];'
+        EXEC sp_executesql @SQL;
+        FETCH NEXT FROM fkeys INTO @KeyName
+        END
+
+      CLOSE fkeys
+      DEALLOCATE fkeys
+
+	END
+      GO --REM
+      SELECT 'Procedure ${this._dropConstraintsProc} for ${this._mainSchema} created' AS Status;
     `;
     return await runScript(adminConfig, script, dbName);
   }
 
   //***user procedures  */
-
-  static async dropUser(
-    adminConfig: sql.config,
-    userName: string,
-    dbName: string,
-  ) {
-    const script = `IF EXISTS (SELECT name FROM sys.database_principals WHERE name = N'${userName}')
-    BEGIN
-      DROP USER [${userName}];
-      SELECT 'USER [${userName}] DROPPED' AS Status;
-    END
-    ELSE
-    BEGIN
-      SELECT 'USER [${userName}] DOES NOT EXIST' AS Status;
-    END
-    GO --REM`;
-
-    return await runScript(adminConfig, script, dbName);
-  }
 
   static async createLogin(
     adminConfig: sql.config,
@@ -351,6 +340,10 @@ SELECT 'Procedure DropConstraints for ${schemaName} created' AS Status;
       ELSE
       BEGIN
         CREATE USER [${userName}] FOR LOGIN [${loginName}] WITH DEFAULT_SCHEMA=[${schemaName}];
+        ALTER ROLE db_datareader ADD MEMBER [${userName}];
+        ALTER ROLE db_datawriter ADD MEMBER [${userName}];
+        ALTER ROLE db_ddladmin ADD MEMBER [${userName}];
+        GRANT ALTER ON SCHEMA:: [${schemaName}] TO [${userName}];
         SELECT 'USER [${userName}] CREATED' AS Status;
       END
       GO --REM`;
@@ -358,8 +351,43 @@ SELECT 'Procedure DropConstraints for ${schemaName} created' AS Status;
     return await runScript(adminConfig, script, dbName);
   }
 
-  public addUserToRole = (roleName: string, userName: string) =>
-    `ALTER ROLE [${roleName}] ADD MEMBER [${userName}]`;
+  static async dropUser(
+    adminConfig: sql.config,
+    userName: string,
+    dbName: string,
+  ) {
+    const script = `IF EXISTS (SELECT name FROM sys.database_principals WHERE name = N'${userName}')
+    BEGIN
+      DROP USER [${userName}];
+      SELECT 'USER [${userName}] DROPPED' AS Status;
+    END
+    ELSE
+    BEGIN
+      SELECT 'USER [${userName}] DOES NOT EXIST' AS Status;
+    END
+    GO --REM`;
+
+    return await runScript(adminConfig, script, dbName);
+  }
+  static async addUserToRole(
+    adminConfig: sql.config,
+    dbName: string,
+    roleName: string,
+    userName: string,
+  ) {
+    const script = `ALTER ROLE [${roleName}] ADD MEMBER [${userName}]`;
+    return await runScript(adminConfig, script, dbName);
+  }
+
+  static async grantSchemaPermission(
+    adminConfig: sql.config,
+    dbName: string,
+    schemaName: string,
+    userName: string,
+  ) {
+    const script = `GRANT ALTER ON SCHEMA:: [${schemaName}] TO [${userName}]`;
+    return await runScript(adminConfig, script, dbName);
+  }
 
   static async getUsers(
     adminConfig: sql.config,
@@ -375,15 +403,23 @@ SELECT 'Procedure DropConstraints for ${schemaName} created' AS Status;
   static async getTableNames(
     adminConfig: sql.config,
     dbName: string,
+    schemaName: string,
   ): Promise<string[]> {
     const script = `
       SELECT TABLE_NAME FROM INFORMATION_SCHEMA.TABLES
-      WHERE TABLE_TYPE = 'BASE TABLE';
+      WHERE TABLE_SCHEMA = '${schemaName}' AND TABLE_TYPE = 'BASE TABLE';
     `;
     const result = await runScript(adminConfig, script, dbName);
-    return result.map((row: any) => row.TABLE_NAME);
+    const tableNames: string[] = [];
+    for (const row of result) {
+      if (JSON.parse(row).TABLE_NAME) {
+        tableNames.push(JSON.parse(row).TABLE_NAME);
+      }
+    }
+    return tableNames;
   }
 
+  //****Compilations */
   /// Initialize the database including scripts
   static async initDb(
     adminConfig: sql.config,
@@ -392,16 +428,51 @@ SELECT 'Procedure DropConstraints for ${schemaName} created' AS Status;
     loginName: string,
     loginPassword: string,
   ) {
-    await DbInit.createDatabase(adminConfig, dbName);
-    await DbInit.useDatabase(adminConfig, dbName);
-    await DbInit.createSchema(adminConfig, dbName, schemaName);
-    await DbInit.createLogin(adminConfig, dbName, loginName, loginPassword);
-    await DbInit.createUser(
+    await this.createDatabase(adminConfig, dbName);
+    await this.useDatabase(adminConfig, dbName);
+    await this.createSchema(adminConfig, dbName, this._mainSchema);
+    await this.createSchema(adminConfig, dbName, schemaName);
+    await this.createLogin(adminConfig, dbName, loginName, loginPassword);
+    await this.createUser(
       adminConfig,
       dbName,
       schemaName,
       loginName,
       loginName,
     );
+    await DbInit.installProcedures(adminConfig, dbName);
+  }
+
+  static async installProcedures(adminConfig: sql.config, dbName: string) {
+    await this.createProcDropLogins(adminConfig, dbName);
+    await this.createProcDropObjects(adminConfig, dbName);
+    await this.createProcDropSchema(adminConfig, dbName);
+    await this.createProcDropConstraints(adminConfig, dbName);
+  }
+
+  static async dropProcedures(adminConfig: sql.config, dbName: string) {
+    const procedureNames = [
+      this._dropConstraintsProc,
+      this._dropObjectsProc,
+      this._dropLoginProc,
+      this._dropSchemaProc,
+    ];
+    for (const proc of procedureNames) {
+      const script = `DROP PROCEDURE IF EXISTS [${this._mainSchema}].[${proc}]`;
+      await runScript(adminConfig, script, dbName);
+    }
+  }
+
+  static async dropConstraints(
+    adminConfig: sql.config,
+    dbName: string,
+    schemaName: string,
+  ) {
+    // loop through all tables in the schema and drop constraints
+    const tables = await this.getTableNames(adminConfig, dbName, schemaName);
+    for (const table of tables) {
+      const script = `EXEC ${this._mainSchema}.${this._dropConstraintsProc} @SchemaName = N'${schemaName}', @TableName = N'${table}'`;
+      await runScript(adminConfig, script, dbName);
+    }
   }
 }
