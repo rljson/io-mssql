@@ -33,6 +33,7 @@ class MyIoTestSetup implements IoTestSetup {
   dbName = 'TestDb';
 
   async beforeAll(): Promise<void> {
+    await DbBasics.createDatabase(this.userCfg, this.dbName);
     await DbBasics.createSchema(this.userCfg, this.dbName, 'main');
     await DbBasics.installProcedures(this.userCfg, this.dbName);
     // No setup needed before all tests
@@ -48,11 +49,11 @@ class MyIoTestSetup implements IoTestSetup {
   async afterEach(): Promise<void> {
     // Clean up environment after each test
     const currentSchema = this.mio.currentSchema;
-    await DbBasics.dropConstraints(this.userCfg, this.dbName, currentSchema);
+    await DbBasics.dropTables(this.userCfg, this.dbName, currentSchema);
     await DbBasics.dropSchema(this.userCfg, this.dbName, currentSchema);
     const currentLogin = this.mio.currentLogin;
     await this.io.close().then(async () => {
-      await IoMssql.dropCurrentLogin(this.userCfg, currentLogin);
+      await DbBasics.dropLogin(this.userCfg, this.dbName, currentLogin);
     });
   }
 

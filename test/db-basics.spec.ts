@@ -39,10 +39,20 @@ beforeEach(async () => {
 describe('DbBasics', () => {
   describe('Database', () => {
     it('should not be created again', async () => {
-      const dbResult = await DbBasics.createDatabase(adminCfg, testDbName);
-      expect(dbResult[0].toString()).toBe(
+      const dropped = await DbBasics.dropDatabase(adminCfg, testDbName);
+      console.log(dropped);
+      const created = await DbBasics.createDatabase(adminCfg, testDbName);
+      console.log(created);
+      const notCreated = await DbBasics.createDatabase(adminCfg, testDbName);
+      expect(notCreated[0].toString()).toBe(
         JSON.stringify({ Status: `Database ${testDbName} already exists` }),
       );
+      const users = await DbBasics.getUsers(
+        adminCfg,
+        testDbName,
+        testSchemaName,
+      );
+      expect(users.length).toBe(0);
     });
 
     it('should be dropped', async () => {
@@ -109,7 +119,7 @@ describe('DbBasics', () => {
       const x = await DbBasics.createProcDropSchema(adminCfg, testDbName);
       expect(x[0].toString()).toBe(
         JSON.stringify({
-          Status: `Procedure DropCurrentSchema for main created`,
+          Status: `Procedure DropSchema for main created`,
         }),
       );
     });
@@ -118,7 +128,7 @@ describe('DbBasics', () => {
       const x = await DbBasics.createProcDropConstraints(adminCfg, testDbName);
       expect(x[0].toString()).toBe(
         JSON.stringify({
-          Status: `Procedure DropCurrentConstraints for main created`,
+          Status: `Procedure DropConstraints for main created`,
         }),
       );
     });
@@ -126,7 +136,7 @@ describe('DbBasics', () => {
       const testUser = 'test_user';
 
       //  Login (drop first, then create)
-      await DbBasics.dropLogin(adminCfg, testUser, testDbName);
+      await DbBasics.dropLogin(adminCfg, testDbName, testUser);
       const createLogin = await DbBasics.createLogin(
         adminCfg,
         testDbName,
@@ -138,7 +148,7 @@ describe('DbBasics', () => {
       );
 
       // User (drop first, then create)
-      await DbBasics.dropUser(adminCfg, testUser, testDbName);
+      await DbBasics.dropUser(adminCfg, testDbName, testUser);
 
       const createUser = await DbBasics.createUser(
         adminCfg,
@@ -152,7 +162,11 @@ describe('DbBasics', () => {
       );
 
       // Get Users - check if the user is in the list
-      const getUsers = await DbBasics.getUsers(adminCfg, testDbName);
+      const getUsers = await DbBasics.getUsers(
+        adminCfg,
+        testDbName,
+        testSchemaName,
+      );
       const userList = Array.isArray(getUsers) ? getUsers : [getUsers];
       // expect(userList.length).toEqual(5);
       userList.forEach((user, idx) => {
@@ -217,7 +231,7 @@ describe('DbBasics', () => {
     });
     it('should drop a non-existing login gracefully', async () => {
       const loginName = 'NonExistentLogin';
-      const result = await DbBasics.dropLogin(adminCfg, loginName, testDbName);
+      const result = await DbBasics.dropLogin(adminCfg, testDbName, loginName);
       expect(result[0].toString()).toBe(
         JSON.stringify({ Status: `LOGIN [${loginName}] DOES NOT EXIST` }),
       );
@@ -225,7 +239,7 @@ describe('DbBasics', () => {
 
     it('should drop a non-existing user gracefully', async () => {
       const userName = 'NonExistentUser';
-      const result = await DbBasics.dropUser(adminCfg, userName, testDbName);
+      const result = await DbBasics.dropUser(adminCfg, testDbName, userName);
       expect(result[0].toString()).toBe(
         JSON.stringify({ Status: `USER [${userName}] DOES NOT EXIST` }),
       );
@@ -281,7 +295,7 @@ describe('DbBasics', () => {
         loginName,
         testPassword,
       );
-      const users = await DbBasics.getUsers(adminCfg, dbName);
+      const users = await DbBasics.getUsers(adminCfg, dbName, testSchemaName);
       expect(Array.isArray(users)).toBe(true);
     });
 
@@ -310,12 +324,14 @@ describe('DbBasics', () => {
 
   describe('Running Scripts', () => {
     it('should drop all tables` constraints', async () => {
-      const createTable = `CREATE TABLE ${testSchemaName}.TestTable (ID INT PRIMARY KEY)`;
+      const tableName = 'TestTable';
+      const createTable = `CREATE TABLE ${testSchemaName}.${tableName} (ID INT PRIMARY KEY)`;
       await runScript(adminCfg, createTable, testDbName);
       const result = await DbBasics.dropConstraints(
         adminCfg,
         testDbName,
         testSchemaName,
+        tableName,
       );
       expect(result).toBeUndefined();
 
@@ -325,6 +341,38 @@ describe('DbBasics', () => {
         testDbName,
       );
       expect(leftConstraints).toEqual(['{"LEFT_CONSTRAINTS":0}']);
+    });
+
+    it('should drop all tables', async () => {
+      const tableName = 'TestTable';
+      const createTable = `CREATE TABLE ${testSchemaName}.${tableName} (ID INT PRIMARY KEY)`;
+      await runScript(adminCfg, createTable, testDbName);
+      const result = await DbBasics.dropTables(
+        adminCfg,
+        testDbName,
+        testSchemaName,
+      );
+      expect(result).toBeUndefined();
+      const leftTables = await DbBasics.getTableNames(
+        adminCfg,
+        testDbName,
+        testSchemaName,
+      );
+      expect(leftTables.length).toBe(0);
+    });
+    it('should drop all users', async () => {
+      const result = await DbBasics.dropUsers(
+        adminCfg,
+        testDbName,
+        testSchemaName,
+      );
+      expect(result).toBeUndefined();
+      const leftUsers = await DbBasics.getUsers(
+        adminCfg,
+        testDbName,
+        testSchemaName,
+      );
+      expect(leftUsers.length).toBe(0);
     });
   });
 });

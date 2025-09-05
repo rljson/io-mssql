@@ -114,10 +114,6 @@ export class MsSqlStatements extends SqlStatements {
     }].${this.addTableSuffix(tableKey)}`;
   }
 
-  public dropLogin = (loginName: string) => `DROP LOGIN [${loginName}]`;
-  public dropUser = (userName: string) => `DROP USER [${userName}]`;
-  public dropSchema = (schemaName: string) => `DROP SCHEMA [${schemaName}]`;
-  public dropDatabase = (dbName: string) => `DROP DATABASE [${dbName}]`;
   public insertTableCfg() {
     const columnKeys = IoTools.tableCfgsTableCfg.columns.map((col) => col.key);
     const columnKeysWithPostfix = columnKeys.map((col) =>
@@ -128,12 +124,6 @@ export class MsSqlStatements extends SqlStatements {
 
     return `INSERT INTO [${this.schemaName}].${this.tbl.main}${this.suffix.tbl} ( ${columnsSql} ) VALUES (${valuesSql})`;
   }
-  /* v8 ignore stop */
-  public schemas = (testSchemaSchema: string) =>
-    `SELECT SCHEMA_NAME AS schemaName FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME LIKE '${testSchemaSchema}%'`;
-
-  public schemaTables = (schemaName: string) =>
-    `SELECT TABLE_NAME AS tableKey FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA = '${schemaName}'`;
 
   public whereString(whereClause: [string, JsonValue][]): string {
     let constraint: string = ' ';

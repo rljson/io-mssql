@@ -8,14 +8,7 @@ import { hip, hsh } from '@rljson/hash';
 import { Io, IoTools } from '@rljson/io';
 import { IsReady } from '@rljson/is-ready';
 import { Json, JsonValue, JsonValueType } from '@rljson/json';
-import {
-  ColumnCfg,
-  iterateTables,
-  Rljson,
-  TableCfg,
-  TableKey,
-  TableType,
-} from '@rljson/rljson';
+import { ColumnCfg, iterateTables, Rljson, TableCfg, TableKey, TableType } from '@rljson/rljson';
 
 import { promises as fs } from 'fs';
 import sql from 'mssql';
@@ -23,6 +16,7 @@ import * as path from 'path';
 
 import { DbBasics } from './db-basics.ts';
 import { MsSqlStatements } from './mssql-statements.ts';
+
 
 export class IoMssql implements Io {
   private _conn: sql.ConnectionPool;
@@ -375,9 +369,12 @@ export class IoMssql implements Io {
     }
   }
 
-  static async dropTestLogins(userCfg: sql.config): Promise<void> {
+  static async dropTestLogins(
+    userCfg: sql.config,
+    schemaName: string,
+  ): Promise<void> {
     const dbRequest = await this.makeConnection(userCfg);
-    await dbRequest.query(`EXEC PantrySchema.DropAllPantryUsers`);
+    await DbBasics.dropUsers(userCfg, userCfg.database!, schemaName);
     await dbRequest.query(`EXEC PantrySchema.DropAllPantryLogins`);
   }
 

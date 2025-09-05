@@ -5,10 +5,10 @@ import { runScript } from './run-script.ts';
 /// Database Initialization (create database, schema etc.)
 export class DbBasics {
   static _mainSchema: string = 'main';
-  static _dropConstraintsProc: string = 'DropCurrentConstraints';
-  static _dropObjectsProc: string = 'DropCurrentObjects';
-  static _dropLoginProc: string = 'DropCurrentLogins';
-  static _dropSchemaProc: string = 'DropCurrentSchema';
+  static _dropConstraintsProc: string = 'DropConstraints';
+  static _dropObjectsProc: string = 'DropObjects';
+  static _dropLoginProc: string = 'DropLogins';
+  static _dropSchemaProc: string = 'DropSchema';
   //****Database */
   /// Create Database
   ///(the only situation where the master must be accessed first)
@@ -308,8 +308,8 @@ export class DbBasics {
 
   static async dropLogin(
     adminConfig: sql.config,
-    loginName: string,
     dbName: string,
+    loginName: string,
   ) {
     const script = `IF EXISTS (SELECT name FROM sys.server_principals WHERE name = N'${loginName}')
     BEGIN
@@ -353,8 +353,8 @@ export class DbBasics {
 
   static async dropUser(
     adminConfig: sql.config,
-    userName: string,
     dbName: string,
+    userName: string,
   ) {
     const script = `IF EXISTS (SELECT name FROM sys.database_principals WHERE name = N'${userName}')
     BEGIN
@@ -364,8 +364,7 @@ export class DbBasics {
     ELSE
     BEGIN
       SELECT 'USER [${userName}] DOES NOT EXIST' AS Status;
-    END
-    GO --REM`;
+    END`;
 
     return await runScript(adminConfig, script, dbName);
   }
@@ -392,10 +391,12 @@ export class DbBasics {
   static async getUsers(
     adminConfig: sql.config,
     dbName: string,
+    schemaName: string,
   ): Promise<string[]> {
-    const script = `
-                  SELECT name FROM sys.database_principals
-                  WHERE type = 'S' AND name NOT LIKE '##%';
+    const script = `SELECT name FROM sys.database_principals
+                  WHERE type = 'S'
+                  AND default_schema_name = '${schemaName}'
+                  AND name NOT LIKE '##%';
             `;
     return await runScript(adminConfig, script, dbName);
   }
@@ -467,11 +468,57 @@ export class DbBasics {
     adminConfig: sql.config,
     dbName: string,
     schemaName: string,
+    tableName: string,
   ) {
-    // loop through all tables in the schema and drop constraints
+    const script = `EXEC ${this._mainSchema}.${this._dropConstraintsProc} @SchemaName = N'${schemaName}', @TableName = N'${tableName}'`;
+    await runScript(adminConfig, script, dbName);
+  }
+
+  static async dropObjects(
+    adminConfig: sql.config,
+    dbName: string,
+    // schemaName: string,
+  ) {
+    const script = `EXEC ${this._mainSchema}.${this._dropObjectsProc}`;
+    await runScript(adminConfig, script, dbName);
+  }
+
+  static async dropUsers(
+    adminConfig: sql.config,
+    dbName: string,
+    schemaName: string,
+  ) {
+    const users = await this.getUsers(adminConfig, dbName, schemaName);
+    for (const user of users) {
+      const userName = JSON.parse(user).name;
+
+      const script = `USE [${dbName}];
+      GO
+      DROP USER [${userName}];
+      GO
+      USE [master];
+      GO
+      DROP LOGIN [${userName}];`;
+      await runScript(adminConfig, script, dbName);
+    }
+  }
+
+  static async dropLogins(adminConfig: sql.config, logins: string[]) {
+    for (const login of logins) {
+      const script = `DROP LOGIN [${login}]`;
+      await runScript(adminConfig, script, 'master');
+    }
+  }
+
+  static async dropTables(
+    adminConfig: sql.config,
+    dbName: string,
+    schemaName: string,
+  ) {
     const tables = await this.getTableNames(adminConfig, dbName, schemaName);
-    for (const table of tables) {
-      const script = `EXEC ${this._mainSchema}.${this._dropConstraintsProc} @SchemaName = N'${schemaName}', @TableName = N'${table}'`;
+    for (const tableName of tables) {
+      this.dropConstraints(adminConfig, dbName, schemaName, tableName);
+      const script = `DROP TABLE IF EXISTS [${schemaName}].[${tableName}]`;
       await runScript(adminConfig, script, dbName);
     }
   }
