@@ -7,10 +7,9 @@ import { runScript } from '../src/run-script';
 // @license
 // Copyright (c) 2025 Rljson
 let adminCfg: sql.config;
-
-const testDbName = 'TestDb';
-const testSchemaName = 'PantrySchema';
-const testLogin = 'test_login';
+let testDbName: string;
+let testSchemaName: string;
+let testLogin: string;
 const testPassword = 'Password123!';
 
 beforeAll(() => {
@@ -28,6 +27,10 @@ beforeAll(() => {
 });
 
 beforeEach(async () => {
+  testDbName = 'TestDb_' + Math.random().toString(36).substring(2, 10);
+  testSchemaName = 'PantrySchema';
+  testLogin = 'test_login';
+
   await DbBasics.initDb(
     adminCfg,
     testDbName,
