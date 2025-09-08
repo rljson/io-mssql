@@ -62,6 +62,23 @@ export class DbBasics {
     return await runScript(adminConfig, script, dbName);
   }
 
+  // Drop all user databases (only for testing)
+  // static async dropDatabases(adminConfig: sql.config) {
+  //   const script = `SELECT name FROM sys.databases
+  //   WHERE name NOT IN ('master', 'tempdb', 'model', 'msdb')`;
+  //   const result = await runScript(adminConfig, script, 'master');
+
+  //   const dbNames: string[] = [];
+  //   for (const row of result) {
+  //     dbNames.push(JSON.parse(row).name);
+  //   }
+  //   for (const dbName of dbNames) {
+  //     const dbKill = await this.dropDatabase(adminConfig, dbName);
+  //     console.log(dbKill);
+  //   }
+  //   return result;
+  // }
+
   //***Schema */
   /// Create Schema
   static async createSchema(
@@ -474,15 +491,6 @@ export class DbBasics {
     await runScript(adminConfig, script, dbName);
   }
 
-  static async dropObjects(
-    adminConfig: sql.config,
-    dbName: string,
-    // schemaName: string,
-  ) {
-    const script = `EXEC ${this._mainSchema}.${this._dropObjectsProc}`;
-    await runScript(adminConfig, script, dbName);
-  }
-
   static async dropUsers(
     adminConfig: sql.config,
     dbName: string,
@@ -500,13 +508,6 @@ export class DbBasics {
       GO
       DROP LOGIN [${userName}];`;
       await runScript(adminConfig, script, dbName);
-    }
-  }
-
-  static async dropLogins(adminConfig: sql.config, logins: string[]) {
-    for (const login of logins) {
-      const script = `DROP LOGIN [${login}]`;
-      await runScript(adminConfig, script, 'master');
     }
   }
 

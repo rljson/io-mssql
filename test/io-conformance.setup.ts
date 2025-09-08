@@ -30,7 +30,7 @@ class MyIoTestSetup implements IoTestSetup {
   };
   masterMind: IoMssql;
   mio: IoMssql;
-  dbName = 'TestDb';
+  dbName = 'TestDb-For-Io-Conformance';
 
   async beforeAll(): Promise<void> {
     await DbBasics.createDatabase(this.userCfg, this.dbName);
@@ -55,6 +55,8 @@ class MyIoTestSetup implements IoTestSetup {
     await this.io.close().then(async () => {
       await DbBasics.dropLogin(this.userCfg, this.dbName, currentLogin);
     });
+    await DbBasics.dropDatabase(this.userCfg, this.dbName);
+    this._io = null;
   }
 
   async afterAll(): Promise<void> {

@@ -50,7 +50,7 @@ export class IoMssql implements Io {
     await this._conn.connect();
     this._ioTools = new IoTools(this);
     await this._initTableCfgs();
-    // await this._ioTools.initRevisionsTable();
+    await this._ioTools.initRevisionsTable();
     this._isReady.resolve();
   }
 

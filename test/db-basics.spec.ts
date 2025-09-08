@@ -72,6 +72,16 @@ describe('DbBasics', () => {
         JSON.stringify({ Status: `Database ${dbName} does not exist` }),
       );
     });
+
+    // This is currently only for manual testing,
+    // as it would drop all DBs on the server***/
+    //***********************************************/
+    // it('should drop multiple databases', async () => {
+    //   const result = await DbBasics.dropDatabases(adminCfg);
+    //   console.log(result);
+    //   expect(Array.isArray(result)).toBe(true);
+    // });
+    //***********************************************/
   });
   describe('Schema', () => {
     it('should not add an existing schema', async () => {

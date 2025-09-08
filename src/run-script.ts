@@ -5,17 +5,16 @@ export async function runScript(
   script: string,
   dbName: string,
 ): Promise<string[]> {
-  let pool: sql.ConnectionPool | undefined;
   // Connect to SQL Server
-  try {
-    pool = await sql.connect(config);
-  } catch (error) {
-    console.error('Error connecting to SQL Server:', error);
-    if (error instanceof Error) {
-      throw error.message;
-    } else {
-      throw new Error(String(error));
-    }
+  const pool: sql.ConnectionPool = await sql.connect(config);
+  // if (!pool.connected) {
+  //   throw new Error('Failed to connect to SQL Server');
+  // }
+
+  // Handle empty script
+  if (script.trim().length === 0) {
+    await pool.close();
+    return [];
   }
 
   // Split script by "GO" batch separator
@@ -53,8 +52,6 @@ export async function runScript(
             .join('\n');
           result.push(preceding);
         }
-      } else {
-        throw new Error(String(error));
       }
     }
   }
