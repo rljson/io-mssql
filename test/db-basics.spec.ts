@@ -1,3 +1,4 @@
+import 'dotenv/config';
 import sql from 'mssql';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
@@ -15,10 +16,10 @@ const testPassword = 'Password123!';
 beforeAll(() => {
   adminCfg = {
     user: 'sa',
-    password: testPassword,
-    server: 'localhost', // or the IP of your container host
-    port: 1431, // default port for SQL Server
-    database: 'master', // or your specific DB name
+    password: process.env.SA_PASSWORD,
+    server: process.env.DB_HOST || 'localhost',
+    port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 1431,
+    database: process.env.DB_NAME,
     options: {
       encrypt: false, // set to true if using SSL
       trustServerCertificate: true, // needed for local dev

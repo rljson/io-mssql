@@ -19,6 +19,28 @@ jobs:
     name: Build and Test
     runs-on: ubuntu-latest
 
+    env:
+      DB_HOST: localhost
+      DB_PORT: 1431
+      DB_USER: sa
+      DB_PASSWORD: Password123!
+      DB_NAME: master
+
+    # new approach to mssql server
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2022-latest
+        env:
+          SA_PASSWORD: 'Password123!'
+          ACCEPT_EULA: 'Y'
+        ports:
+          - 1433:1431
+        options: >-
+          --health-cmd="exit 0"
+          --health-interval=10s
+          --health-timeout=5s
+          --health-retries=5
+    # end new approach to mssql server
     strategy:
       matrix:
         node-version: [22.x]

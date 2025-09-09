@@ -1,9 +1,10 @@
 // @license
 // Copyright (c) 2025 Rljson
-//
 // Use of this source code is governed by terms that can be
 import { Io, IoTestSetup } from '@rljson/io';
 
+// used to store logins
+import 'dotenv/config';
 // found in the LICENSE file in the root of this package.
 import sql from 'mssql';
 
@@ -19,10 +20,10 @@ class MyIoTestSetup implements IoTestSetup {
   // Otherwise, define the type inline:
   userCfg: sql.config = {
     user: 'sa',
-    password: 'Password123!',
-    server: 'localhost', // or the IP of your container host
-    port: 1431,
-    database: 'master', // or your specific DB name
+    password: process.env.SA_PASSWORD,
+    server: process.env.DB_HOST || 'localhost',
+    port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 1431,
+    database: process.env.DB_NAME,
     options: {
       encrypt: false, // set to true if using SSL
       trustServerCertificate: true, // needed for local dev
