@@ -18,29 +18,14 @@ jobs:
   build:
     name: Build and Test
     runs-on: ubuntu-latest
-
+    # credentials for mssql server
     env:
-      DB_HOST: localhost
-      DB_PORT: 1431
-      DB_USER: sa
-      DB_PASSWORD: Password123!
-      DB_NAME: master
+      DB_HOST: ${{ secrets.DB_HOST }}
+      DB_PORT: ${{ secrets.DB_PORT }}
+      DB_USER: ${{ secrets.DB_USER }}
+      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+      DB_NAME: ${{ secrets.DB_NAME }}
 
-    # new approach to mssql server
-    services:
-      mssql:
-        image: mcr.microsoft.com/mssql/server:2022-latest
-        env:
-          SA_PASSWORD: 'Password123!'
-          ACCEPT_EULA: 'Y'
-        ports:
-          - 1433:1431
-        options: >-
-          --health-cmd="exit 0"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
-    # end new approach to mssql server
     strategy:
       matrix:
         node-version: [22.x]
@@ -49,22 +34,25 @@ jobs:
       - name: Checkout code
         uses: actions/checkout@v4
 
-      # - name: Install SQL Server tools
-      #   run: |
-      #     curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
-      #     curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list | sudo tee /etc/apt/sources.list.d/msprod.list
-      #     sudo apt-get update
-      #     sudo ACCEPT_EULA=Y apt-get install -y mssql-tools unixodbc-dev
-      #     echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc
-      #     source ~/.bashrc
+      - name: Install Podman
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y podman
 
-      # - name: Wait for MSSQL to be ready
-      #   run: |
-      #     for i in {1..30}; do
-      #       /opt/mssql-tools/bin/sqlcmd -S localhost -U SA -P "0I2tV9(F0V$+Hv@G" -Q "SELECT 1" && break
-      #       sleep 1
-      #     done
-      - uses: actions/checkout@v4
+      - name: Start MSSQL container
+        run: |
+          podman pull mcr.microsoft.com/mssql/server:2022-latest
+          podman run -d \
+            --name mssql \
+            -e "ACCEPT_EULA=Y" \
+            -e "SA_PASSWORD=Password123!" \
+            -p 1433:1431 \
+            mcr.microsoft.com/mssql/server:2022-latest
+          sleep 30
+
+      - name: Login to GitHub Container Registry
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u ${{ github.actor }} --password-stdin
+
       # Corepack aktivieren, um sicherzustellen, dass pnpm funktioniert
       - name: Enable Corepack
         run: corepack enable
@@ -88,5 +76,13 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
       # currently
-      # - run: pnpm build
-      # - run: pnpm test
+      - run: pnpm build
+      - run: pnpm test
+
+      - name: Build image with Podman
+        run: podman build -t ghcr.io/rljson/io-mssql:latest .
+
+      - name: Login to GHCR
+        run: echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u ${{ github.actor }} --password-stdin
+      - name: Push image
+        run: podman push ghcr.io/rljson/io-mssql:latest
