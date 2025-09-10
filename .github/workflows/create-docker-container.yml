@@ -1,4 +1,4 @@
-name: Create Container
+name: Create Docker Container
 on:
   workflow_dispatch:
 jobs:
