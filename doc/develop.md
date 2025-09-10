@@ -33,13 +33,13 @@ git pull
 
 ## Set pull request title
 
-Replace `Get Github Actions working` here and below
+Replace `Second try` here and below
 by your new pull request title.
 
 ## Create a feature branch
 
 ```bash
-node scripts/create-branch.js "Get Github Actions working"
+node scripts/create-branch.js "Second try"
 ```
 
 ## Update dependencies
@@ -65,7 +65,7 @@ In Vscode, press
 
 ```bash
 git add .
-git commit -am"Get Github Actions working"
+git commit -am"Second try"
 ```
 
 ## Increase version
@@ -96,7 +96,7 @@ node scripts/push-branch.js
 ## Create a pull request
 
 ```bash
-gh pr create --base main --title "Get Github Actions working" --body " "
+gh pr create --base main --title "Second try" --body " "
 ```
 
 ## Code review
