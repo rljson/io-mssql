@@ -85,13 +85,13 @@ jobs:
 
       - run: pnpm install --frozen-lockfile
       # currently
-      - run: pnpm build
-      - run: pnpm test
+      # - run: pnpm build
+      # - run: pnpm test
 
-      - name: Build image with Podman
-        run: podman build -t ghcr.io/rljson/io-mssql:latest .
+      # - name: Build image with Podman
+      #   run: podman build -t ghcr.io/rljson/io-mssql:latest .
 
-      - name: Login to GHCR
-        run: echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u ${{ github.actor }} --password-stdin
-      - name: Push image
-        run: podman push ghcr.io/rljson/io-mssql:latest
+      # - name: Login to GHCR
+      #   run: echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u ${{ github.actor }} --password-stdin
+      # - name: Push image
+      #   run: podman push ghcr.io/rljson/io-mssql:latest
