@@ -1,9 +1,9 @@
-import 'dotenv/config';
 import sql from 'mssql';
 import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { DbBasics } from '../src/db-basics';
 import { runScript } from '../src/run-script';
+
 
 // @license
 // Copyright (c) 2025 Rljson
@@ -16,10 +16,10 @@ const testPassword = 'Password123!';
 beforeAll(() => {
   adminCfg = {
     user: 'sa',
-    password: process.env.SA_PASSWORD,
-    server: process.env.DB_HOST || 'localhost',
-    port: process.env.DB_PORT ? Number(process.env.DB_PORT) : 1431,
-    database: process.env.DB_NAME,
+    password: 'Password123!',
+    server: 'localhost',
+    port: 1431,
+    database: 'master',
     options: {
       encrypt: false, // set to true if using SSL
       trustServerCertificate: true, // needed for local dev
@@ -44,9 +44,13 @@ describe('DbBasics', () => {
   describe('Database', () => {
     it('should not be created again', async () => {
       const dropped = await DbBasics.dropDatabase(adminCfg, testDbName);
-      console.log(dropped);
+      expect(dropped[0].toString()).toBe(
+        JSON.stringify({ Status: `Database ${testDbName} dropped` }),
+      );
       const created = await DbBasics.createDatabase(adminCfg, testDbName);
-      console.log(created);
+      expect(created[0].toString()).toBe(
+        JSON.stringify({ Status: `Database ${testDbName} created` }),
+      );
       const notCreated = await DbBasics.createDatabase(adminCfg, testDbName);
       expect(notCreated[0].toString()).toBe(
         JSON.stringify({ Status: `Database ${testDbName} already exists` }),
@@ -175,17 +179,17 @@ describe('DbBasics', () => {
         JSON.stringify({ Status: `USER [${testUser}] CREATED` }),
       );
 
-      // Get Users - check if the user is in the list
-      const getUsers = await DbBasics.getUsers(
-        adminCfg,
-        testDbName,
-        testSchemaName,
-      );
-      const userList = Array.isArray(getUsers) ? getUsers : [getUsers];
-      // expect(userList.length).toEqual(5);
-      userList.forEach((user, idx) => {
-        console.log(`User ${idx}:`, JSON.parse(user).name);
-      });
+      // // Get Users - check if the user is in the list
+      // const getUsers = await DbBasics.getUsers(
+      //   adminCfg,
+      //   testDbName,
+      //   testSchemaName,
+      // );
+      // // const userList = Array.isArray(getUsers) ? getUsers : [getUsers];
+      // // // expect(userList.length).toEqual(5);
+      // // userList.forEach((user, idx) => {
+      // //   console.log(`User ${idx}:`, JSON.parse(user).name);
+      // // });
 
       // Check if the new user can login
       const newUserCfg: sql.config = {
@@ -200,8 +204,7 @@ describe('DbBasics', () => {
         },
       };
 
-      console.log(newUserCfg);
-      console.log(adminCfg);
+      // Try to connect with the new user
       const ok = await runScript(newUserCfg, `SELECT 1 AS RESULT`, testDbName);
       expect(ok).toEqual(['{"RESULT":1}']);
     });

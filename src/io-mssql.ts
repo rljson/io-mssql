@@ -257,33 +257,21 @@ export class IoMssql implements Io {
     await this._conn.connect();
     // Create random names
     const randomString = Math.random().toString(36).substring(2, 12);
-    //const dbName = this.userCfg.database ?? 'Test-DB'; // `CDM-Test-${randomString}`;
     const testSchemaName = `testschema_${randomString}`;
     const loginName = `login_${randomString}`;
     const loginPassword = `P@ssw0rd!${randomString}`;
     // Create database and schema
-    console.log(await DbBasics.createDatabase(this.userCfg, dbName));
-    console.log(
-      await DbBasics.createSchema(this.userCfg, dbName, testSchemaName),
-    );
+    await DbBasics.createDatabase(this.userCfg, dbName);
+    await DbBasics.createSchema(this.userCfg, dbName, testSchemaName);
 
     // Create login and user
-    console.log(
-      await DbBasics.createLogin(
-        this.userCfg,
-        dbName,
-        loginName,
-        loginPassword,
-      ),
-    );
-    console.log(
-      await DbBasics.createUser(
-        this.userCfg,
-        dbName,
-        testSchemaName,
-        loginName,
-        loginName,
-      ),
+    await DbBasics.createLogin(this.userCfg, dbName, loginName, loginPassword);
+    await DbBasics.createUser(
+      this.userCfg,
+      dbName,
+      testSchemaName,
+      loginName,
+      loginName,
     );
 
     await DbBasics.grantSchemaPermission(
@@ -305,10 +293,7 @@ export class IoMssql implements Io {
       port: 1431,
     };
 
-    // const loginUser: sql.config = this.userCfg;
-
     // Wait until user is actually created
-
     const waitForUser = async (retries = 10, delay = 1000) => {
       for (let i = 0; i < retries; i++) {
         const testReq = new sql.Request(this._conn);

@@ -1,16 +1,9 @@
 import sql from 'mssql';
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-} from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { DbBasics } from '../src/db-basics';
 import { IoMssql } from '../src/io-mssql'; // Adjust the path as needed
+
 
 // @license
 // Copyright (c) 2025 Rljson
@@ -41,13 +34,11 @@ describe('IoMssql', () => {
   const testSchemaName = 'PantrySchema';
 
   beforeAll(async () => {
-    console.log(await DbBasics.dropDatabase(adminCfg, testDbName));
-    console.log(await DbBasics.createDatabase(adminCfg, testDbName));
-    console.log(await DbBasics.useDatabase(adminCfg, testDbName));
-    console.log(
-      await DbBasics.createSchema(adminCfg, testDbName, testSchemaName),
-    );
-    console.log('Installation scripts executed successfully.');
+    await DbBasics.dropDatabase(adminCfg, testDbName);
+    await DbBasics.createDatabase(adminCfg, testDbName);
+    await DbBasics.useDatabase(adminCfg, testDbName);
+    await DbBasics.createSchema(adminCfg, testDbName, testSchemaName);
+    await DbBasics.installProcedures(adminCfg, testDbName);
   });
 
   beforeEach(async () => {
@@ -56,18 +47,7 @@ describe('IoMssql', () => {
 
     // Create a new database for testing
     ioSql = await masterMind.example(testDbName);
-
-    // check if the new user can log into the database
-    // const userCanLogin = await ioSql.isUserLoggedIn();
-    // expect(userCanLogin).toBe(true);
-
-    const getUsers = await DbBasics.getUsers(adminCfg, testDbName);
-    const userList = Array.isArray(getUsers) ? getUsers : [getUsers];
-
-    userList.forEach((user, idx) => {
-      console.log(`User ${idx}:`, JSON.parse(user).name);
-    });
-
+    // Initialize connection
     await ioSql.init();
     await ioSql.isReady();
   });

@@ -18,7 +18,8 @@ Podman Desktop uses Linux in the background.
 
 ## Run in terminal
 
-After Podman Desktop has been installed, the
+After Podman Desktop has been installed, the further actions
+can be taken from the GUI or via CLI.
 
 ### To fetch mssql image and accept eula
 

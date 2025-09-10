@@ -2,7 +2,9 @@ import sql from 'mssql';
 
 import { runScript } from './run-script.ts';
 
+
 /// Database Initialization (create database, schema etc.)
+/// These are static methods to deal with the database itself
 export class DbBasics {
   static _mainSchema: string = 'main';
   static _dropConstraintsProc: string = 'DropConstraints';
