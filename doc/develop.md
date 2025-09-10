@@ -33,13 +33,13 @@ git pull
 
 ## Set pull request title
 
-Replace `Connect to container` here and below
+Replace `Get Github Actions working` here and below
 by your new pull request title.
 
 ## Create a feature branch
 
 ```bash
-node scripts/create-branch.js "Connect to container"
+node scripts/create-branch.js "Get Github Actions working"
 ```
 
 ## Update dependencies
@@ -65,7 +65,7 @@ In Vscode, press
 
 ```bash
 git add .
-git commit -am"Connect to container"
+git commit -am"Get Github Actions working"
 ```
 
 ## Increase version
@@ -96,7 +96,7 @@ node scripts/push-branch.js
 ## Create a pull request
 
 ```bash
-gh pr create --base main --title "Connect to container" --body " "
+gh pr create --base main --title "Get Github Actions working" --body " "
 ```
 
 ## Code review
