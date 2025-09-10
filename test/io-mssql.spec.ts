@@ -1,15 +1,9 @@
 import sql from 'mssql';
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-} from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
+import { DbBasics } from '../src/db-basics';
 import { IoMssql } from '../src/io-mssql'; // Adjust the path as needed
+
 
 // @license
 // Copyright (c) 2025 Rljson
@@ -23,22 +17,28 @@ import { IoMssql } from '../src/io-mssql'; // Adjust the path as needed
 
 describe('IoMssql', () => {
   let ioSql: IoMssql;
+
   const adminCfg: sql.config = {
-    server: 'localhost\\LOCALTESTSERVER',
-    database: 'CDM-Test',
+    user: 'sa',
+    password: 'Password123!',
+    server: 'localhost', // or the IP of your container host
+    port: 1431,
+    database: 'master', // or your specific DB name
     options: {
-      encrypt: true,
-      trustServerCertificate: true,
+      encrypt: false, // set to true if using SSL
+      trustServerCertificate: true, // needed for local dev
     },
-    user: 'CDM-Login',
-    password: 'OneTwoThree',
   };
 
+  const testDbName = 'TestDb';
+  const testSchemaName = 'PantrySchema';
+
   beforeAll(async () => {
-    // await IoMssql.installScripts(adminCfg);
-    await IoMssql.dropTestLogins(adminCfg);
-    await IoMssql.dropTestSchemas(adminCfg);
-    console.log('IoMssql installation scripts executed successfully.');
+    await DbBasics.dropDatabase(adminCfg, testDbName);
+    await DbBasics.createDatabase(adminCfg, testDbName);
+    await DbBasics.useDatabase(adminCfg, testDbName);
+    await DbBasics.createSchema(adminCfg, testDbName, testSchemaName);
+    await DbBasics.installProcedures(adminCfg, testDbName);
   });
 
   beforeEach(async () => {
@@ -46,7 +46,8 @@ describe('IoMssql', () => {
     const masterMind = new IoMssql(adminCfg);
 
     // Create a new database for testing
-    ioSql = await masterMind.example();
+    ioSql = await masterMind.example(testDbName);
+    // Initialize connection
     await ioSql.init();
     await ioSql.isReady();
   });
@@ -100,12 +101,10 @@ describe('IoMssql', () => {
   });
 
   it('should return an error when the connection is closed', async () => {
-    const ioMssql = new IoMssql(adminCfg);
-    await ioMssql.init();
-    await ioMssql.close();
+    await ioSql.close();
     let error: unknown = null;
     try {
-      await ioMssql.isReady();
+      await ioSql.isReady();
     } catch (err) {
       error = err;
     }
@@ -115,6 +114,8 @@ describe('IoMssql', () => {
   });
 
   it('should execute installScripts without throwing', async () => {
-    await expect(IoMssql.installScripts(adminCfg)).resolves.not.toThrow();
+    await expect(
+      DbBasics.installProcedures(adminCfg, testDbName),
+    ).resolves.not.toThrow();
   });
 });

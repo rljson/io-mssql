@@ -42,41 +42,7 @@ describe('MsSqlStatements.jsonToSqlType', () => {
     );
   });
 });
-describe('MsSqlStatements.schemas', () => {
-  const msSqlStatements = new MsSqlStatements('dbo');
 
-  it('should generate correct SQL for schemas with given prefix', () => {
-    const testSchemaSchema = 'testPrefix';
-    const expectedSql =
-      "SELECT SCHEMA_NAME AS schemaName FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME LIKE 'testPrefix%'";
-    expect(msSqlStatements.schemas(testSchemaSchema)).toBe(expectedSql);
-  });
-
-  it('should handle empty prefix', () => {
-    const testSchemaSchema = '';
-    const expectedSql =
-      "SELECT SCHEMA_NAME AS schemaName FROM INFORMATION_SCHEMA.SCHEMATA WHERE SCHEMA_NAME LIKE '%'";
-    expect(msSqlStatements.schemas(testSchemaSchema)).toBe(expectedSql);
-  });
-});
-
-describe('MsSqlStatements.schemaTables', () => {
-  const msSqlStatements = new MsSqlStatements('dbo');
-
-  it('should generate correct SQL for schemaTables with given schemaName', () => {
-    const schemaName = 'customSchema';
-    const expectedSql =
-      "SELECT TABLE_NAME AS tableKey FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA = 'customSchema'";
-    expect(msSqlStatements.schemaTables(schemaName)).toBe(expectedSql);
-  });
-
-  it('should handle empty schemaName', () => {
-    const schemaName = '';
-    const expectedSql =
-      "SELECT TABLE_NAME AS tableKey FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA = ''";
-    expect(msSqlStatements.schemaTables(schemaName)).toBe(expectedSql);
-  });
-});
 describe('MsSqlStatements.allData', () => {
   const msSqlStatements = new MsSqlStatements('dbo');
   const tableKey = msSqlStatements.addTableSuffix('myTable');

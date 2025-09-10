@@ -8,20 +8,15 @@ import { hip, hsh } from '@rljson/hash';
 import { Io, IoTools } from '@rljson/io';
 import { IsReady } from '@rljson/is-ready';
 import { Json, JsonValue, JsonValueType } from '@rljson/json';
-import {
-  ColumnCfg,
-  iterateTables,
-  Rljson,
-  TableCfg,
-  TableKey,
-  TableType,
-} from '@rljson/rljson';
+import { ColumnCfg, iterateTables, Rljson, TableCfg, TableKey, TableType } from '@rljson/rljson';
 
 import { promises as fs } from 'fs';
 import sql from 'mssql';
 import * as path from 'path';
 
+import { DbBasics } from './db-basics.ts';
 import { MsSqlStatements } from './mssql-statements.ts';
+
 
 export class IoMssql implements Io {
   private _conn: sql.ConnectionPool;
@@ -47,6 +42,7 @@ export class IoMssql implements Io {
       this._schemaName = this.schemaName;
     }
     this.stm = new MsSqlStatements(this._schemaName);
+
     // Connection will be established in the async init() method
   }
 
@@ -257,44 +253,47 @@ export class IoMssql implements Io {
     return result.recordset[0].totalCount ?? 0; // Return the second count if available, otherwise the first, or 0 if both are null
   }
 
-  public example = async () => {
+  public example = async (dbName: string) => {
     await this._conn.connect();
-    const req = new sql.Request(this._conn);
     // Create random names
     const randomString = Math.random().toString(36).substring(2, 12);
-    const dbName = this.userCfg.database ?? 'Test-DB'; // `CDM-Test-${randomString}`;
     const testSchemaName = `testschema_${randomString}`;
     const loginName = `login_${randomString}`;
     const loginPassword = `P@ssw0rd!${randomString}`;
     // Create database and schema
-    await req.query(this.stm.useDatabase(dbName));
-    await req.query(this.stm.createSchema(testSchemaName));
+    await DbBasics.createDatabase(this.userCfg, dbName);
+    await DbBasics.createSchema(this.userCfg, dbName, testSchemaName);
 
     // Create login and user
+    await DbBasics.createLogin(this.userCfg, dbName, loginName, loginPassword);
+    await DbBasics.createUser(
+      this.userCfg,
+      dbName,
+      testSchemaName,
+      loginName,
+      loginName,
+    );
 
-    await req.query(this.stm.createLogin(loginName, dbName, loginPassword));
-    await req.query(this.stm.useDatabase(dbName));
-    await req.query(this.stm.createUser(loginName, loginName, testSchemaName));
-    // Add user to roles
-
-    await req.query(this.stm.addUserToRole('db_datareader', loginName));
-    await req.query(this.stm.addUserToRole('db_datawriter', loginName));
-    await req.query(this.stm.addUserToRole('db_ddladmin', loginName));
-    await req.query(this.stm.grantSchemaPermission(testSchemaName, loginName));
+    await DbBasics.grantSchemaPermission(
+      this.userCfg,
+      dbName,
+      testSchemaName,
+      loginName,
+    );
 
     const loginUser: sql.config = {
       server: this.userCfg.server,
       database: dbName,
       options: {
-        encrypt: true,
+        encrypt: false,
         trustServerCertificate: true,
       },
       user: loginName,
       password: loginPassword,
+      port: 1431,
     };
 
     // Wait until user is actually created
-
     const waitForUser = async (retries = 10, delay = 1000) => {
       for (let i = 0; i < retries; i++) {
         const testReq = new sql.Request(this._conn);
@@ -355,9 +354,12 @@ export class IoMssql implements Io {
     }
   }
 
-  static async dropTestLogins(userCfg: sql.config): Promise<void> {
+  static async dropTestLogins(
+    userCfg: sql.config,
+    schemaName: string,
+  ): Promise<void> {
     const dbRequest = await this.makeConnection(userCfg);
-    await dbRequest.query(`EXEC PantrySchema.DropAllPantryUsers`);
+    await DbBasics.dropUsers(userCfg, userCfg.database!, schemaName);
     await dbRequest.query(`EXEC PantrySchema.DropAllPantryLogins`);
   }
 
@@ -377,14 +379,12 @@ export class IoMssql implements Io {
       `EXEC PantrySchema.DropCurrentConstraints [${schemaName}]`,
     );
   }
-  static async dropCurrentSchema(
+  static async DropSchema(
     userCfg: sql.config,
     schemaName: string,
   ): Promise<void> {
     const dbRequest = await this.makeConnection(userCfg);
-    await dbRequest.query(
-      `EXEC PantrySchema.DropCurrentSchema [${schemaName}]`,
-    );
+    await dbRequest.query(`EXEC PantrySchema.DropSchema [${schemaName}]`);
   }
   static async dropCurrentLogin(
     userCfg: sql.config,

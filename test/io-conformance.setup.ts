@@ -1,12 +1,10 @@
 // @license
 // Copyright (c) 2025 Rljson
-//
-// Use of this source code is governed by terms that can be
 import { Io, IoTestSetup } from '@rljson/io';
 
-// found in the LICENSE file in the root of this package.
 import sql from 'mssql';
 
+import { DbBasics } from '../src/db-basics';
 import { IoMssql } from '../src/io-mssql';
 
 
@@ -18,39 +16,45 @@ class MyIoTestSetup implements IoTestSetup {
 
   // Otherwise, define the type inline:
   userCfg: sql.config = {
-    server: 'localhost\\LOCALTESTSERVER',
-    database: 'CDM-Test',
+    user: 'sa',
+    password: 'Password123!',
+    server: 'localhost',
+    port: 1431,
+    database: 'master',
     options: {
-      encrypt: true,
-      trustServerCertificate: true,
+      encrypt: false, // set to true if using SSL
+      trustServerCertificate: true, // needed for local dev
     },
-    user: 'CDM-Login',
-    password: 'OneTwoThree',
   };
   masterMind: IoMssql;
   mio: IoMssql;
+  dbName = 'TestDb-For-Io-Conformance';
 
   async beforeAll(): Promise<void> {
-    // IoMssql.installScripts(this.userCfg);
+    await DbBasics.createDatabase(this.userCfg, this.dbName);
+    await DbBasics.createSchema(this.userCfg, this.dbName, 'main');
+    await DbBasics.installProcedures(this.userCfg, this.dbName);
     // No setup needed before all tests
-    this.masterMind = new IoMssql(this.userCfg, 'PantrySchema');
+    this.masterMind = new IoMssql(this.userCfg, 'main');
   }
 
   async beforeEach(): Promise<void> {
     // Create example
-    this.mio = await this.masterMind.example();
+    this.mio = await this.masterMind.example(this.dbName);
     this._io = this.mio;
   }
 
   async afterEach(): Promise<void> {
     // Clean up environment after each test
     const currentSchema = this.mio.currentSchema;
-    await IoMssql.dropCurrentConstraints(this.userCfg, currentSchema);
-    await IoMssql.dropCurrentSchema(this.userCfg, currentSchema);
+    await DbBasics.dropTables(this.userCfg, this.dbName, currentSchema);
+    await DbBasics.dropSchema(this.userCfg, this.dbName, currentSchema);
     const currentLogin = this.mio.currentLogin;
     await this.io.close().then(async () => {
-      await IoMssql.dropCurrentLogin(this.userCfg, currentLogin);
+      await DbBasics.dropLogin(this.userCfg, this.dbName, currentLogin);
     });
+    await DbBasics.dropDatabase(this.userCfg, this.dbName);
+    this._io = null;
   }
 
   async afterAll(): Promise<void> {

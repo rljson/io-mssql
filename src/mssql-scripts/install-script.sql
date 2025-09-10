@@ -1,29 +1,7 @@
-USE [CDM-Test]
-GO --REM
 
-IF NOT EXISTS (SELECT 1 FROM sys.schemas WHERE name = 'PantrySchema')
-BEGIN
-    EXEC('CREATE SCHEMA PantrySchema');
-END
-GO --REM
 
 CREATE OR ALTER PROCEDURE
-PantrySchema.DropCurrentConstraints(@SchemaName NVARCHAR(50))
-AS
-BEGIN
- -- Drop all foreign key constraints
- DECLARE @sql NVARCHAR(MAX) = N''
-      SELECT @sql += 'ALTER TABLE [' + s.name + '].[' + t.name + '] DROP CONSTRAINT [' + f.name + '];'
-      FROM sys.foreign_keys f
-      INNER JOIN sys.tables t ON f.parent_object_id = t.object_id
-      INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
-      WHERE s.name = @SchemaName;
-      EXEC sp_executesql @sql;
-END
-GO --REM
-
-CREATE OR ALTER PROCEDURE
-PantrySchema.DropCurrentSchema (@SchemaName NVARCHAR(50))
+PantrySchema.DropSchema (@SchemaName NVARCHAR(50))
 AS
 BEGIN
 PRINT @SchemaName
@@ -90,39 +68,6 @@ DECLARE @sql nvarchar(max) = N''
 END
 GO --REM
 
-
-CREATE OR ALTER PROCEDURE
-PantrySchema.DropAllPantryObjects
-AS
--- Delete all schemas that have been created
--- apart from the main schema
-BEGIN
-  DECLARE @SchemaName nvarchar(50)
-  DECLARE @sql NVARCHAR(MAX) = N'';
-  DECLARE SchemaNames CURSOR FOR
-  SELECT name
-  FROM sys.schemas
-  WHERE name NOT IN ('dbo', 'guest', 'INFORMATION_SCHEMA', 'sys','PantrySchema');
-  OPEN SchemaNames
-  FETCH NEXT FROM SchemaNames INTO @SchemaName
-  WHILE @@FETCH_STATUS = 0
-    BEGIN
-    PRINT @SchemaName
-    EXEC PantrySchema.DropCurrentSchema @SchemaName
-
-	   FETCH NEXT FROM SchemaNames INTO @SchemaName
-
-    END
-
-	CLOSE SchemaNames
-	DEALLOCATE SchemaNames
-  -- The problem is that the END statement is missing before the GO batch separator at the end of the procedure.
-  -- In T-SQL, each BEGIN must have a corresponding END. Without it, you'll get a syntax error.
-  -- You should move END; before the GO statement, like this:
-
-  END;
-
-GO --REM
 
 CREATE OR ALTER PROCEDURE PantrySchema.DropCurrentLogin (@LoginName NVARCHAR(128))
 AS
