@@ -15,7 +15,7 @@ jobs:
           SA_PASSWORD: YourStrong!Passw0rd
           MSSQL_PID: Developer
         ports:
-          - 1433:1431
+          - 1433:1433
         options: >-
           --health-cmd="curl -f http://localhost:1433 || exit 1"
           --health-interval=10s
@@ -25,10 +25,10 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
-      - name: Set up Docker Compose
-        run: |
-          docker-compose up -d
-          sleep 40  # wait for MSSQL to be ready
+      # - name: Set up Docker Compose
+      #   run: |
+      #     docker-compose up -d
+      #     sleep 40  # wait for MSSQL to be ready
 
       # - name: Run tests or scripts
       #   run: |
