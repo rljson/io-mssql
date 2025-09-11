@@ -344,9 +344,7 @@ describe('DbBasics', () => {
         testDbName,
         testSchemaName,
       );
-      if (remainingTables.length > 0) {
-        console.log('Remaining tables:', remainingTables);
-      }
+
       expect(remainingTables.length).toBe(0);
     });
     it('should drop all users', async () => {
