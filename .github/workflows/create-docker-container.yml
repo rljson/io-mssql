@@ -35,16 +35,6 @@ jobs:
           echo "Testing MSSQL connection..."
           # Optional: install sqlcmd and test connection
 
-      # - name: Set up Docker Compose
-      #   run: |
-      #     docker-compose up -d
-      #     sleep 40  # wait for MSSQL to be ready
-
-      # - name: Run tests or scripts
-      #   run: |
-      #     # Example: run a script that connects to MSSQL
-      #     echo "Running tests against MSSQL..."
-
       # Corepack aktivieren, um sicherzustellen, dass pnpm funktioniert
       - name: Enable Corepack
         run: corepack enable
@@ -67,3 +57,6 @@ jobs:
             ${{ runner.os }}-pnpm-
 
       - run: pnpm install --frozen-lockfile
+
+      - run: pnpm build
+      - run: pnpm test
