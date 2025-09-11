@@ -9,7 +9,7 @@ jobs:
         node-version: [22.x]
     services:
       mssql:
-        image: mcr.microsoft.com/mssql/server:2022-latest
+        image: mcr.microsoft.com/mssql/server:2019-latest
         env:
           ACCEPT_EULA: Y
           SA_PASSWORD: YourStrong!Passw0rd
@@ -17,7 +17,7 @@ jobs:
         ports:
           - 1433:1431
         options: >-
-          --health-cmd="curl -f http://localhost:1431 || exit 1"
+          --health-cmd="curl -f http://localhost:1433 || exit 1"
           --health-interval=10s
           --health-timeout=5s
           --health-retries=5
