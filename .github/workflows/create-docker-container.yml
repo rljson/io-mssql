@@ -18,7 +18,7 @@ jobs:
           SA_PASSWORD: Password123!
           MSSQL_PID: Developer
         ports:
-          - 14330:1433
+          - 1431:1433
         # Removed health check
 
     steps:
