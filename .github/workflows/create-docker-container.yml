@@ -1,12 +1,15 @@
 name: Create Docker Container
+
 on:
   workflow_dispatch:
+
 jobs:
   create-container:
     runs-on: ubuntu-latest
     strategy:
       matrix:
         node-version: [22.x]
+
     services:
       mssql:
         image: mcr.microsoft.com/mssql/server:2019-latest
@@ -15,15 +18,22 @@ jobs:
           SA_PASSWORD: YourStrong!Passw0rd
           MSSQL_PID: Developer
         ports:
-          - 1433:1433
-        options: >-
-          --health-cmd="curl -f http://localhost:1433 || exit 1"
-          --health-interval=10s
-          --health-timeout=5s
-          --health-retries=5
+          - 14330:1433
+        # Removed health check
+
     steps:
       - name: Checkout repository
         uses: actions/checkout@v3
+
+      - name: Wait for MSSQL to be ready
+        run: |
+          echo "Waiting for MSSQL to start..."
+          sleep 30  # Adjust if needed
+
+      - name: Test MSSQL connection
+        run: |
+          echo "Testing MSSQL connection..."
+          # Optional: install sqlcmd and test connection
 
       # - name: Set up Docker Compose
       #   run: |
