@@ -15,7 +15,7 @@ jobs:
         image: mcr.microsoft.com/mssql/server:2019-latest
         env:
           ACCEPT_EULA: Y
-          SA_PASSWORD: YourStrong!Passw0rd
+          SA_PASSWORD: Password123!
           MSSQL_PID: Developer
         ports:
           - 14330:1433
@@ -67,18 +67,3 @@ jobs:
             ${{ runner.os }}-pnpm-
 
       - run: pnpm install --frozen-lockfile
-# - name: Create Docker container
-#   run: |
-#     docker build -t my-node-app .
-#     docker run -d -p 3000:3000 --name my-running-app my-node-app
-
-# - name: Verify container is running
-#   run: docker ps | grep my-running-app
-# - name: Test application endpoint
-#   run: |
-#     sleep 10 # Wait for the app to start
-#     curl -f http://localhost:3000 || exit 1
-# - name: Stop and remove container
-#   run: |
-#     docker stop my-running-app
-#     docker rm my-running-app
