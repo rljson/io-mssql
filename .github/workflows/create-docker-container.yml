@@ -28,12 +28,12 @@ jobs:
       - name: Set up Docker Compose
         run: |
           docker-compose up -d
-          sleep 20  # wait for MSSQL to be ready
+          sleep 40  # wait for MSSQL to be ready
 
-      - name: Run tests or scripts
-        run: |
-          # Example: run a script that connects to MSSQL
-          echo "Running tests against MSSQL..."
+      # - name: Run tests or scripts
+      #   run: |
+      #     # Example: run a script that connects to MSSQL
+      #     echo "Running tests against MSSQL..."
 
       # Corepack aktivieren, um sicherzustellen, dass pnpm funktioniert
       - name: Enable Corepack
