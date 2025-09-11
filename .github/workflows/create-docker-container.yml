@@ -25,6 +25,16 @@ jobs:
       - name: Checkout repository
         uses: actions/checkout@v3
 
+      - name: Set up Docker Compose
+        run: |
+          docker-compose up -d
+          sleep 20  # wait for MSSQL to be ready
+
+      - name: Run tests or scripts
+        run: |
+          # Example: run a script that connects to MSSQL
+          echo "Running tests against MSSQL..."
+
       # Corepack aktivieren, um sicherzustellen, dass pnpm funktioniert
       - name: Enable Corepack
         run: corepack enable
@@ -47,19 +57,18 @@ jobs:
             ${{ runner.os }}-pnpm-
 
       - run: pnpm install --frozen-lockfile
+# - name: Create Docker container
+#   run: |
+#     docker build -t my-node-app .
+#     docker run -d -p 3000:3000 --name my-running-app my-node-app
 
-      # - name: Create Docker container
-      #   run: |
-      #     docker build -t my-node-app .
-      #     docker run -d -p 3000:3000 --name my-running-app my-node-app
-
-      # - name: Verify container is running
-      #   run: docker ps | grep my-running-app
-      # - name: Test application endpoint
-      #   run: |
-      #     sleep 10 # Wait for the app to start
-      #     curl -f http://localhost:3000 || exit 1
-      # - name: Stop and remove container
-      #   run: |
-      #     docker stop my-running-app
-      #     docker rm my-running-app
+# - name: Verify container is running
+#   run: docker ps | grep my-running-app
+# - name: Test application endpoint
+#   run: |
+#     sleep 10 # Wait for the app to start
+#     curl -f http://localhost:3000 || exit 1
+# - name: Stop and remove container
+#   run: |
+#     docker stop my-running-app
+#     docker rm my-running-app
