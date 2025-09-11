@@ -9,13 +9,6 @@ import { IoMssql } from '../src/io-mssql';
 
 // ..............................................................................
 class MyIoTestSetup implements IoTestSetup {
-  afterAll: () => Promise<void>;
-  // If you have 'mssql' installed, import and use its config type:
-  // import type { config as MssqlConfig } from 'mssql';
-  // const userCfg: MssqlConfig = { ... };
-
-  // Otherwise, define the type inline:
-
   masterMind: IoMssql;
   mio: IoMssql;
   dbName = 'TestDb-For-Io-Conformance';
@@ -47,6 +40,10 @@ class MyIoTestSetup implements IoTestSetup {
     this._io = null;
   }
 
+  async afterAll(): Promise<void> {
+    // No cleanup needed after all tests
+    await this.masterMind.close();
+  }
   get io(): Io {
     if (!this._io) {
       throw new Error('Call beforeEach() before accessing io');
