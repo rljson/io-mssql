@@ -339,12 +339,15 @@ describe('DbBasics', () => {
         testSchemaName,
       );
       expect(result).toBeUndefined();
-      const leftTables = await DbBasics.getTableNames(
+      const remainingTables = await DbBasics.getTableNames(
         adminCfg,
         testDbName,
         testSchemaName,
       );
-      expect(leftTables.length).toBe(0);
+      if (remainingTables.length > 0) {
+        console.log('Remaining tables:', remainingTables);
+      }
+      expect(remainingTables.length).toBe(0);
     });
     it('should drop all users', async () => {
       const result = await DbBasics.dropUsers(
@@ -353,12 +356,12 @@ describe('DbBasics', () => {
         testSchemaName,
       );
       expect(result).toBeUndefined();
-      const leftUsers = await DbBasics.getUsers(
+      const remainingUsers = await DbBasics.getUsers(
         adminCfg,
         testDbName,
         testSchemaName,
       );
-      expect(leftUsers.length).toBe(0);
+      expect(remainingUsers.length).toBe(0);
     });
   });
 });
