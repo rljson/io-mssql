@@ -1,27 +1,13 @@
-import sql from 'mssql';
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
+import { adminCfg } from '../src/admin-cfg';
 import { DbBasics } from '../src/db-basics';
 import { runScript } from '../src/run-script';
 
-let adminCfg: sql.config;
 
 const testDb = 'TestDbForRunScript';
-// const testSchema = 'TestSchema';
 
 beforeAll(async () => {
-  adminCfg = {
-    user: 'sa',
-    password: 'Password123!',
-    server: 'localhost', // or the IP of your container host
-    port: 1431,
-    database: 'master', // or your specific DB name
-    options: {
-      encrypt: false, // set to true if using SSL
-      trustServerCertificate: true, // needed for local dev
-    },
-  };
-
   await DbBasics.createDatabase(adminCfg, testDb);
 });
 

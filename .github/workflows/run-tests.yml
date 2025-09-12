@@ -5,38 +5,55 @@
 name: Tests
 
 on:
+  workflow_dispatch:
   push:
     branches: ['main']
   pull_request:
     branches: ['main']
-  # workflow_run:
-  #   workflows: ['setup-sql-server']
-  #   types: [completed]
-  # branches: [main]
 
 jobs:
   build:
     name: Build and Test
     runs-on: ubuntu-latest
-    # credentials for mssql server
-    env:
-      DB_HOST: ${{ secrets.DB_HOST }}
-      DB_PORT: ${{ secrets.DB_PORT }}
-      DB_USER: ${{ secrets.DB_USER }}
-      DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
-      DB_NAME: ${{ secrets.DB_NAME }}
-
-      ACTIONS_STEP_DEBUG: true
-      ACTIONS_RUNNER_DEBUG: true
-
     strategy:
       matrix:
         node-version: [22.x]
-
+    services:
+      mssql:
+        image: mcr.microsoft.com/mssql/server:2019-latest
+        env:
+          ACCEPT_EULA: Y
+          SA_PASSWORD: Password123!
+          MSSQL_PID: Developer
+        ports:
+          - 1431:1433
     steps:
+    
       - name: Checkout code
         uses: actions/checkout@v4
 
+      - name: Install MSSQL tools (sqlcmd)
+        run: |
+          curl https://packages.microsoft.com/keys/microsoft.asc | sudo apt-key add -
+          curl https://packages.microsoft.com/config/ubuntu/20.04/prod.list | sudo tee /etc/apt/sources.list.d/msprod.list
+          sudo apt-get update
+          sudo ACCEPT_EULA=Y apt-get install -y mssql-tools unixodbc-dev
+          echo 'export PATH="$PATH:/opt/mssql-tools/bin"' >> ~/.bashrc
+          export PATH="$PATH:/opt/mssql-tools/bin"
+      
+      - name: Wait for MSSQL to be ready
+        run: |
+          echo "Waiting for MSSQL to start..."
+          for i in {1..30}; do
+            /opt/mssql-tools/bin/sqlcmd -S localhost,1431 -U sa -P 'Password123!' -Q "SELECT 1" && break
+            echo "MSSQL not ready yet... ($i)"
+            sleep 2
+          done      
+
+      - name: Test MSSQL connection
+        run: |
+          echo "Testing MSSQL connection..."
+          # Optional: install sqlcmd and test connection
       # Corepack aktivieren, um sicherzustellen, dass pnpm funktioniert
       - name: Enable Corepack
         run: corepack enable
@@ -59,14 +76,6 @@ jobs:
             ${{ runner.os }}-pnpm-
 
       - run: pnpm install --frozen-lockfile
-      # currently
-      # - run: pnpm build
-      # - run: pnpm test
 
-      # - name: Build image with Podman
-      #   run: podman build -t ghcr.io/rljson/io-mssql:latest .
-
-      # - name: Login to GHCR
-      #   run: echo "${{ secrets.GITHUB_TOKEN }}" | podman login ghcr.io -u ${{ github.actor }} --password-stdin
-      # - name: Push image
-      #   run: podman push ghcr.io/rljson/io-mssql:latest
+      - run: pnpm build
+      - run: pnpm test

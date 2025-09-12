@@ -33,13 +33,13 @@ git pull
 
 ## Set pull request title
 
-Replace `Second try` here and below
+Replace `Use Docker container` here and below
 by your new pull request title.
 
 ## Create a feature branch
 
 ```bash
-node scripts/create-branch.js "Second try"
+node scripts/create-branch.js "Use Docker container"
 ```
 
 ## Update dependencies
@@ -65,7 +65,7 @@ In Vscode, press
 
 ```bash
 git add .
-git commit -am"Second try"
+git commit -am"Use Docker container"
 ```
 
 ## Increase version
@@ -96,7 +96,7 @@ node scripts/push-branch.js
 ## Create a pull request
 
 ```bash
-gh pr create --base main --title "Second try" --body " "
+gh pr create --base main --title "Use Docker container" --body " "
 ```
 
 ## Code review
