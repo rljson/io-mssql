@@ -1,12 +1,12 @@
-import { describe, expect, it } from 'vitest';
-
-import { adminCfg } from '../src/admin-cfg';
-
-
 // @license
 // Copyright (c) 2025 Rljson
 //
 // Use of this source code is governed by terms that can be
+
+import { describe, expect, it } from 'vitest';
+
+import { adminCfg } from '../src/admin-cfg';
+
 describe('adminCfg', () => {
   it('should have the correct user', () => {
     expect(adminCfg.user).toBe('sa');
