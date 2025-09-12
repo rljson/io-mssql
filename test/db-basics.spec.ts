@@ -1,31 +1,17 @@
 import sql from 'mssql';
-import { beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { beforeEach, describe, expect, it } from 'vitest';
 
+import { adminCfg } from '../src/admin-cfg';
 import { DbBasics } from '../src/db-basics';
 import { runScript } from '../src/run-script';
 
 
 // @license
 // Copyright (c) 2025 Rljson
-let adminCfg: sql.config;
 let testDbName: string;
 let testSchemaName: string;
 let testLogin: string;
 const testPassword = 'Password123!';
-
-beforeAll(() => {
-  adminCfg = {
-    user: 'sa',
-    password: 'Password123!',
-    server: 'localhost',
-    port: 1431,
-    database: 'master',
-    options: {
-      encrypt: false, // set to true if using SSL
-      trustServerCertificate: true, // needed for local dev
-    },
-  };
-});
 
 beforeEach(async () => {
   testDbName = 'TestDb_' + Math.random().toString(36).substring(2, 10);
@@ -179,29 +165,12 @@ describe('DbBasics', () => {
         JSON.stringify({ Status: `USER [${testUser}] CREATED` }),
       );
 
-      // // Get Users - check if the user is in the list
-      // const getUsers = await DbBasics.getUsers(
-      //   adminCfg,
-      //   testDbName,
-      //   testSchemaName,
-      // );
-      // // const userList = Array.isArray(getUsers) ? getUsers : [getUsers];
-      // // // expect(userList.length).toEqual(5);
-      // // userList.forEach((user, idx) => {
-      // //   console.log(`User ${idx}:`, JSON.parse(user).name);
-      // // });
-
       // Check if the new user can login
       const newUserCfg: sql.config = {
+        ...adminCfg,
         user: testUser,
         password: testPassword,
-        server: 'localhost',
-        port: 1431,
         database: testDbName,
-        options: {
-          encrypt: false, // SSL deaktivieren
-          trustServerCertificate: true, // selbstsigniertes Zertifikat akzeptieren
-        },
       };
 
       // Try to connect with the new user
@@ -370,12 +339,13 @@ describe('DbBasics', () => {
         testSchemaName,
       );
       expect(result).toBeUndefined();
-      const leftTables = await DbBasics.getTableNames(
+      const remainingTables = await DbBasics.getTableNames(
         adminCfg,
         testDbName,
         testSchemaName,
       );
-      expect(leftTables.length).toBe(0);
+
+      expect(remainingTables.length).toBe(0);
     });
     it('should drop all users', async () => {
       const result = await DbBasics.dropUsers(
@@ -384,12 +354,12 @@ describe('DbBasics', () => {
         testSchemaName,
       );
       expect(result).toBeUndefined();
-      const leftUsers = await DbBasics.getUsers(
+      const remainingUsers = await DbBasics.getUsers(
         adminCfg,
         testDbName,
         testSchemaName,
       );
-      expect(leftUsers.length).toBe(0);
+      expect(remainingUsers.length).toBe(0);
     });
   });
 });
