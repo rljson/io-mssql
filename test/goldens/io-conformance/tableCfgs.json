@@ -1,9 +1,10 @@
 {
   "tableCfgs": {
+    "_type": "tableCfgs",
     "_data": [
       {
         "key": "revisions",
-        "type": "ingredients",
+        "type": "revisions",
         "isHead": true,
         "isRoot": true,
         "isShared": false,
@@ -39,12 +40,12 @@
             "_hash": "eq2P3RIaSgy81i7PomNUvn"
           }
         ],
-        "_hash": "CubBZQUGTMLa5wMqqzHLXz"
+        "_hash": "2ztQLyMtsFFIs0z_rvT6UL"
       },
       {
-        "_hash": "oS4O57K1hbZY9hQzRID9nO",
+        "_hash": "er5aXXmEqihTA7Y1glILb4",
         "key": "tableCfgs",
-        "type": "ingredients",
+        "type": "tableCfgs",
         "isHead": false,
         "isRoot": false,
         "isShared": true,
@@ -93,7 +94,7 @@
         ]
       }
     ],
-    "_tableCfg": "oS4O57K1hbZY9hQzRID9nO",
-    "_hash": "Rq-oDdFCeBCeW3HTiFMhhN"
+    "_tableCfg": "er5aXXmEqihTA7Y1glILb4",
+    "_hash": "_u8EEswMCQtr4EKdi4F2Ti"
   }
 }
