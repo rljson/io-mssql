@@ -110,7 +110,7 @@ export class IoMssql implements Io {
     const parsedReturnData = this._parseData(dataAsJson, tableCfg);
     const tableCfgHash = tableCfg._hash as string;
     const table: TableType = {
-      _type: 'tableCfgs',
+      _type: tableCfg.type,
       _data: parsedReturnData as any,
       _tableCfg: tableCfgHash,
       _hash: '',
