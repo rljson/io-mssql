@@ -5,7 +5,6 @@
 // found in the LICENSE file in the root of this package.
 import sql from 'mssql';
 
-
 export const adminCfg: sql.config = {
   user: 'sa',
   password: 'Password123!',
