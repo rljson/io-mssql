@@ -8,7 +8,15 @@ import { hip, hsh } from '@rljson/hash';
 import { Io, IoTools } from '@rljson/io';
 import { IsReady } from '@rljson/is-ready';
 import { Json, JsonValue, JsonValueType } from '@rljson/json';
-import { ColumnCfg, iterateTables, Rljson, TableCfg, TableKey, TableType } from '@rljson/rljson';
+import {
+  ColumnCfg,
+  ComponentsTable,
+  iterateTables,
+  Rljson,
+  TableCfg,
+  TableKey,
+  TableType,
+} from '@rljson/rljson';
 
 import { promises as fs } from 'fs';
 import sql from 'mssql';
@@ -16,7 +24,6 @@ import * as path from 'path';
 
 import { DbBasics } from './db-basics.ts';
 import { MsSqlStatements } from './mssql-statements.ts';
-
 
 export class IoMssql implements Io {
   private _conn: sql.ConnectionPool;
@@ -103,6 +110,7 @@ export class IoMssql implements Io {
     const parsedReturnData = this._parseData(dataAsJson, tableCfg);
     const tableCfgHash = tableCfg._hash as string;
     const table: TableType = {
+      _type: 'tableCfgs',
       _data: parsedReturnData as any,
       _tableCfg: tableCfgHash,
       _hash: '',
@@ -229,7 +237,8 @@ export class IoMssql implements Io {
     const dataAsJson = dbResult.recordset as Json[];
     const parsedReturnData = this._parseData(dataAsJson, tableCfg);
 
-    const table = {
+    const table: ComponentsTable<any> = {
+      _type: 'components',
       _data: parsedReturnData,
     };
 

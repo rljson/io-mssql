@@ -33,13 +33,13 @@ git pull
 
 ## Set pull request title
 
-Replace `Use Docker container` here and below
+Replace `Integrate latest RLJSON and IO changes` here and below
 by your new pull request title.
 
 ## Create a feature branch
 
 ```bash
-node scripts/create-branch.js "Use Docker container"
+node scripts/create-branch.js "Integrate latest RLJSON and IO changes"
 ```
 
 ## Update dependencies
@@ -65,7 +65,7 @@ In Vscode, press
 
 ```bash
 git add .
-git commit -am"Use Docker container"
+git commit -am"Integrate latest RLJSON and IO changes"
 ```
 
 ## Increase version
@@ -96,7 +96,7 @@ node scripts/push-branch.js
 ## Create a pull request
 
 ```bash
-gh pr create --base main --title "Use Docker container" --body " "
+gh pr create --base main --title "Integrate latest RLJSON and IO changes" --body " "
 ```
 
 ## Code review
