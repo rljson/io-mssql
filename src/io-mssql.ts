@@ -11,6 +11,7 @@ import { Json, JsonValue, JsonValueType } from '@rljson/json';
 import {
   ColumnCfg,
   ComponentsTable,
+  ContentType,
   iterateTables,
   Rljson,
   TableCfg,
@@ -51,6 +52,36 @@ export class IoMssql implements Io {
     this.stm = new MsSqlStatements(this._schemaName);
 
     // Connection will be established in the async init() method
+  }
+  async contentType(request: { table: string }): Promise<ContentType> {
+    const result = await DbBasics.contentType(
+      this.userCfg,
+      this.userCfg.database!,
+      this._schemaName,
+      request.table,
+    );
+    const contentType = Array.isArray(result)
+      ? JSON.parse(result[0])
+      : JSON.parse(result as string);
+    return contentType.type_col as ContentType;
+  }
+  observeTable(table: string, callback: (data: Rljson) => void): void {
+    const result = this._ioTools.observeTable(table, callback);
+    console.log(result);
+    console.log(table, callback);
+    throw new Error('Method not implemented.');
+  }
+  unobserveTable(table: string, callback: (data: Rljson) => void): void {
+    console.log(table, callback);
+    throw new Error('Method not implemented.');
+  }
+  unobserveAll(table?: string): void {
+    console.log(table);
+    throw new Error('Method not implemented.');
+  }
+  observers(table: string): ((data: Rljson) => void)[] {
+    console.log(table);
+    throw new Error('Method not implemented.');
   }
 
   async init(): Promise<void> {

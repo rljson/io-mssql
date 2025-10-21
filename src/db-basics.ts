@@ -1,7 +1,7 @@
 import sql from 'mssql';
 
 import { runScript } from './run-script.ts';
-
+import { SqlStatements } from './sql-statements.ts';
 
 /// Database Initialization (create database, schema etc.)
 /// These are static methods to deal with the database itself
@@ -9,8 +9,11 @@ export class DbBasics {
   static _mainSchema: string = 'main';
   static _dropConstraintsProc: string = 'DropConstraints';
   static _dropObjectsProc: string = 'DropObjects';
-  static _dropLoginProc: string = 'DropLogins';
+  static _dropLoginsProc: string = 'DropLogins';
   static _dropSchemaProc: string = 'DropSchema';
+  static _contentTypeProc: string = 'GetContentType';
+
+  static basicStatements = new SqlStatements();
   //****Database */
   /// Create Database
   ///(the only situation where the master must be accessed first)
@@ -43,6 +46,58 @@ export class DbBasics {
     SELECT 'Using database ${dbName}' AS Status;`;
     return await runScript(adminConfig, useDbScript, dbName);
   }
+
+  /// Enable Change Data Capture (CDC) for a database
+  static async enableCdcDb(
+    adminConfig: sql.config,
+    dbName: string,
+  ): Promise<string[]> {
+    const script = `EXEC sys.sp_cdc_enable_db;
+    SELECT 'CDC enabled for database ${dbName}' AS Status;`;
+    return await runScript(adminConfig, script, dbName);
+  }
+
+  static async disableCdcDb(
+    adminConfig: sql.config,
+    dbName: string,
+  ): Promise<string[]> {
+    const script = `EXEC sys.sp_cdc_disable_db;
+    SELECT 'CDC disabled for database ${dbName}' AS Status;`;
+    return await runScript(adminConfig, script, dbName);
+  }
+
+  static async enableCDCTable(
+    adminConfig: sql.config,
+    dbName: string,
+    schemaName: string,
+    tableName: string,
+  ): Promise<string[]> {
+    const script = `
+     EXEC sys.sp_cdc_enable_table
+    @source_schema = N'${schemaName}',
+    @source_name   = N'${tableName}',
+    @role_name     = NULL;
+
+    SELECT 'CDC enabled for table ${schemaName}.${tableName}' AS Status;
+    `;
+    return await runScript(adminConfig, script, dbName);
+  }
+  static async disableCDCTable(
+    adminConfig: sql.config,
+    dbName: string,
+    schemaName: string,
+    tableName: string,
+  ): Promise<string[]> {
+    const script = `
+    EXEC sys.sp_cdc_disable_table
+    @source_schema = N'${schemaName}',
+    @source_name   = N'${tableName}',
+    @capture_instance = N'${schemaName}_${tableName}';
+    SELECT 'CDC disabled for table ${schemaName}.${tableName}' AS Status;
+    `;
+    return await runScript(adminConfig, script, dbName);
+  }
+
   /// Drop Database (only for testing)
   static async dropDatabase(
     adminConfig: sql.config,
@@ -130,18 +185,33 @@ export class DbBasics {
   ): Promise<string[]> {
     const script = `
       CREATE OR ALTER PROCEDURE
-          ${this._mainSchema}.${this._dropConstraintsProc}( @SchemaName NVARCHAR(50))
+          ${this._mainSchema}.${this._dropLoginsProc}( @SchemaName NVARCHAR(50))
           AS
       BEGIN
-      -- Drop all foreign key constraints
-      DECLARE @sql NVARCHAR(MAX) = N''
-          SELECT @sql += 'ALTER TABLE [' + s.name + '].[' + t.name + ']
-          DROP CONSTRAINT [' + f.name + '];'
-          FROM sys.foreign_keys f
-          INNER JOIN sys.tables t ON f.parent_object_id = t.object_id
-          INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
-          WHERE s.name = @SchemaName;
-          EXEC sp_executesql @sql;
+        DECLARE @Prefix NVARCHAR(100) = 'test_';
+        DECLARE @LoginName NVARCHAR(128);
+        DECLARE @SQL NVARCHAR(MAX);
+
+        DECLARE login_cursor CURSOR FOR
+        SELECT name
+        FROM sys.server_principals
+        WHERE type_desc = 'SQL_LOGIN'
+          AND name LIKE @Prefix + '%';
+
+        OPEN login_cursor;
+        FETCH NEXT FROM login_cursor INTO @LoginName;
+
+        WHILE @@FETCH_STATUS = 0
+        BEGIN
+            SET @SQL = 'DROP LOGIN [' + @LoginName + ']';
+            EXEC sp_executesql @SQL;
+
+            FETCH NEXT FROM login_cursor INTO @LoginName;
+        END
+
+        CLOSE login_cursor;
+        DEALLOCATE login_cursor;
+
       END
       GO --REM;
       SELECT 'Procedure to drop logins created' AS Status;
@@ -305,6 +375,37 @@ export class DbBasics {
     return await runScript(adminConfig, script, dbName);
   }
 
+  static async createContentTypeProc(
+    adminConfig: sql.config,
+    dbName: string,
+  ): Promise<string[]> {
+    const sourceTable = this.basicStatements.addTableSuffix('tableCfgs');
+    const resultCol = this.basicStatements.addColumnSuffix('type');
+    const script = `
+      CREATE OR ALTER PROCEDURE
+      ${this._mainSchema}.${this._contentTypeProc} (@schemaName NVARCHAR(256), @tableKey NVARCHAR(256))
+      AS
+      BEGIN
+        DECLARE @SQL NVARCHAR(MAX) = N''
+        SELECT @SQL += 'SELECT ${resultCol} FROM [' + @schemaName + '].[${sourceTable}] WHERE key_col = @tableKey;'
+        EXEC sp_executesql @SQL, N'@tableKey NVARCHAR(256)', @tableKey
+      END
+      GO --REM
+      SELECT 'Procedure ${this._contentTypeProc} for ${this._mainSchema} created' AS Status;
+    `;
+    return await runScript(adminConfig, script, dbName);
+  }
+
+  static async contentType(
+    adminConfig: sql.config,
+    dbName: string,
+    schemaName: string,
+    tableName: string,
+  ): Promise<string[]> {
+    const script = `EXEC ${this._mainSchema}.${this._contentTypeProc} @schemaName = '${schemaName}', @tableKey = '${tableName}'`;
+    return await runScript(adminConfig, script, dbName);
+  }
+
   //***user procedures  */
 
   static async createLogin(
@@ -354,16 +455,17 @@ export class DbBasics {
       WHERE type_desc = 'SQL_USER'
       AND name = '${userName}')
       BEGIN
-        SELECT 'USER [${userName}] ALREADY EXISTS' AS Status;
+      SELECT 'USER [${userName}] ALREADY EXISTS' AS Status;
       END
       ELSE
       BEGIN
-        CREATE USER [${userName}] FOR LOGIN [${loginName}] WITH DEFAULT_SCHEMA=[${schemaName}];
-        ALTER ROLE db_datareader ADD MEMBER [${userName}];
-        ALTER ROLE db_datawriter ADD MEMBER [${userName}];
-        ALTER ROLE db_ddladmin ADD MEMBER [${userName}];
-        GRANT ALTER ON SCHEMA:: [${schemaName}] TO [${userName}];
-        SELECT 'USER [${userName}] CREATED' AS Status;
+      CREATE USER [${userName}] FOR LOGIN [${loginName}] WITH DEFAULT_SCHEMA=[${schemaName}];
+      ALTER ROLE db_datareader ADD MEMBER [${userName}];
+      ALTER ROLE db_datawriter ADD MEMBER [${userName}];
+      ALTER ROLE db_ddladmin ADD MEMBER [${userName}];
+      GRANT ALTER ON SCHEMA:: [${schemaName}] TO [${userName}];
+      GRANT EXECUTE ON SCHEMA:: [main] TO [${userName}];
+      SELECT 'USER [${userName}] CREATED' AS Status;
       END
       GO --REM`;
 
@@ -439,6 +541,17 @@ export class DbBasics {
     return tableNames;
   }
 
+  //Transaction handling
+  static async transact(
+    adminConfig: sql.config,
+    dbName: string,
+    type: 'begin' | 'commit' | 'rollback',
+    transactionName: string,
+  ): Promise<string[]> {
+    const script = `${type} TRANSACTION ${transactionName};`;
+    return await runScript(adminConfig, script, dbName);
+  }
+
   //****Compilations */
   /// Initialize the database including scripts
   static async initDb(
@@ -468,13 +581,14 @@ export class DbBasics {
     await this.createProcDropObjects(adminConfig, dbName);
     await this.createProcDropSchema(adminConfig, dbName);
     await this.createProcDropConstraints(adminConfig, dbName);
+    await this.createContentTypeProc(adminConfig, dbName);
   }
 
   static async dropProcedures(adminConfig: sql.config, dbName: string) {
     const procedureNames = [
       this._dropConstraintsProc,
       this._dropObjectsProc,
-      this._dropLoginProc,
+      this._dropLoginsProc,
       this._dropSchemaProc,
     ];
     for (const proc of procedureNames) {

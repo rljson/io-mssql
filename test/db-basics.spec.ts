@@ -1,10 +1,10 @@
 import sql from 'mssql';
+import { afterEach } from 'node:test';
 import { beforeEach, describe, expect, it } from 'vitest';
 
 import { adminCfg } from '../src/admin-cfg';
 import { DbBasics } from '../src/db-basics';
 import { runScript } from '../src/run-script';
-
 
 // @license
 // Copyright (c) 2025 Rljson
@@ -26,6 +26,11 @@ beforeEach(async () => {
     testPassword,
   );
 });
+
+afterEach(async () => {
+  await DbBasics.dropDatabase(adminCfg, testDbName);
+});
+
 describe('DbBasics', () => {
   describe('Database', () => {
     it('should not be created again', async () => {
@@ -360,6 +365,60 @@ describe('DbBasics', () => {
         testSchemaName,
       );
       expect(remainingUsers.length).toBe(0);
+    });
+  });
+
+  describe('CDC handling', () => {
+    it('should enable CDC on the database', async () => {
+      const result = await DbBasics.enableCdcDb(adminCfg, testDbName);
+      expect(result[0].toString()).toBe(
+        JSON.stringify({ Status: `CDC enabled for database ${testDbName}` }),
+      );
+      // Calling again should have no effect
+      const result2 = await DbBasics.enableCdcDb(adminCfg, testDbName);
+      expect(result2[0].toString()).toBe(
+        JSON.stringify({ Status: `CDC enabled for database ${testDbName}` }),
+      );
+    });
+
+    it('should disable CDC on the database', async () => {
+      // First, ensure CDC is enabled
+      await DbBasics.enableCdcDb(adminCfg, testDbName);
+      const result = await DbBasics.disableCdcDb(adminCfg, testDbName);
+      expect(result[0].toString()).toBe(
+        JSON.stringify({ Status: `CDC disabled for database ${testDbName}` }),
+      );
+      // Calling again  should have no effect
+      const result2 = await DbBasics.disableCdcDb(adminCfg, testDbName);
+      expect(result2[0].toString()).toBe(
+        JSON.stringify({ Status: `CDC disabled for database ${testDbName}` }),
+      );
+    });
+    it('should enable and disable CDC on a table', async () => {
+      await DbBasics.enableCdcDb(adminCfg, testDbName);
+      const tableName = 'CdcTestTable';
+      const createTable = `CREATE TABLE ${testSchemaName}.${tableName} (ID INT PRIMARY KEY, Name NVARCHAR(100))`;
+      await runScript(adminCfg, createTable, testDbName);
+      const result = await DbBasics.enableCDCTable(
+        adminCfg,
+        testDbName,
+        testSchemaName,
+        tableName,
+      );
+      expect(result[0].toString()).toBe(
+        JSON.stringify({
+          Status: `CDC enabled for table ${testSchemaName}.${tableName}`,
+        }),
+      );
+
+      await expect(
+        DbBasics.disableCDCTable(
+          adminCfg,
+          testDbName,
+          testSchemaName,
+          tableName,
+        ),
+      ).resolves.not.toThrow();
     });
   });
 });

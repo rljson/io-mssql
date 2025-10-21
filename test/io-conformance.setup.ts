@@ -6,11 +6,10 @@ import { adminCfg } from '../src/admin-cfg';
 import { DbBasics } from '../src/db-basics';
 import { IoMssql } from '../src/io-mssql';
 
-
 // ..............................................................................
 class MyIoTestSetup implements IoTestSetup {
-  masterMind: IoMssql;
-  mio: IoMssql;
+  masterMind!: IoMssql;
+  mio!: IoMssql;
   dbName = 'TestDb-For-Io-Conformance';
 
   async beforeAll(): Promise<void> {
