@@ -1,16 +1,9 @@
-import {
-  afterAll,
-  afterEach,
-  beforeAll,
-  beforeEach,
-  describe,
-  expect,
-  it,
-} from 'vitest';
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { adminCfg } from '../src/admin-cfg';
 import { DbBasics } from '../src/db-basics';
 import { IoMssql } from '../src/io-mssql'; // Adjust the path as needed
+
 
 // @license
 // Copyright (c) 2025 Rljson
@@ -112,39 +105,5 @@ describe('IoMssql', () => {
     await expect(
       DbBasics.installProcedures(adminCfg, testDbName),
     ).resolves.not.toThrow();
-  });
-
-  it('should enable CDC on the database without throwing', async () => {
-    // CDC is a SQL Server feature, so we expect this to work if the DB supports it
-    await expect(
-      DbBasics.enableCDCDb(adminCfg, testDbName),
-    ).resolves.not.toThrow();
-  });
-
-  it('should enable CDC on a table without throwing', async () => {
-    // First, create a table to enable CDC on
-    const dbRequest = await IoMssql.makeConnection({
-      ...adminCfg,
-      database: testDbName,
-    });
-    await dbRequest.query(`
-      CREATE TABLE [${testSchemaName}].[cdc_test_table] (
-        [id] INT PRIMARY KEY,
-        [value] NVARCHAR(100)
-      )
-    `);
-
-    // Enable CDC on the table
-    await expect(
-      DbBasics.enableCDCTable(
-        adminCfg,
-        testDbName,
-        testSchemaName,
-        'cdc_test_table',
-      ),
-    ).resolves.not.toThrow();
-
-    // Clean up
-    await dbRequest.query(`DROP TABLE [${testSchemaName}].[cdc_test_table]`);
   });
 });

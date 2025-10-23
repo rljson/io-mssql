@@ -377,9 +377,9 @@ export class SqlStatements {
           case 'boolean':
             convertedRow[key] = val !== 0;
             break;
-          /* v8 ignore start */
+          /* v8 ignore next -- @preserve */
           case 'jsonArray':
-          /* v8 ignore stop */
+
           case 'json':
             convertedRow[key] = JSON.parse(val as string);
             break;

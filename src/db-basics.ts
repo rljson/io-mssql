@@ -1,3 +1,5 @@
+import { ContentType } from '@rljson/rljson';
+
 import sql from 'mssql';
 
 import { runScript } from './run-script.ts';
@@ -163,6 +165,9 @@ export class DbBasics {
     dbName: string,
     schemaName: string,
   ): Promise<string[]> {
+    if (schemaName === 'dbo' || schemaName === 'main') {
+      return [`Cannot drop schema ${schemaName}`];
+    }
     const script = `
       IF EXISTS (SELECT * FROM sys.schemas WHERE name = N'${schemaName}')
       BEGIN
@@ -401,9 +406,14 @@ export class DbBasics {
     dbName: string,
     schemaName: string,
     tableName: string,
-  ): Promise<string[]> {
+  ): Promise<ContentType> {
     const script = `EXEC ${this._mainSchema}.${this._contentTypeProc} @schemaName = '${schemaName}', @tableKey = '${tableName}'`;
-    return await runScript(adminConfig, script, dbName);
+    const result = await runScript(adminConfig, script, dbName);
+
+    if (result.length === 0) {
+      throw new Error(`Table "${tableName}" not found`);
+    }
+    return result as unknown as ContentType;
   }
 
   //***user procedures  */
@@ -576,12 +586,32 @@ export class DbBasics {
     await DbBasics.installProcedures(adminConfig, dbName);
   }
 
-  static async installProcedures(adminConfig: sql.config, dbName: string) {
-    await this.createProcDropLogins(adminConfig, dbName);
-    await this.createProcDropObjects(adminConfig, dbName);
-    await this.createProcDropSchema(adminConfig, dbName);
-    await this.createProcDropConstraints(adminConfig, dbName);
-    await this.createContentTypeProc(adminConfig, dbName);
+  static async installProcedures(
+    adminConfig: sql.config,
+    dbName: string,
+  ): Promise<string[]> {
+    const dropLoginsProc = await this.createProcDropLogins(adminConfig, dbName);
+    const dropObjectsProc = await this.createProcDropObjects(
+      adminConfig,
+      dbName,
+    );
+    const dropSchemaProc = await this.createProcDropSchema(adminConfig, dbName);
+    const dropConstraintsProc = await this.createProcDropConstraints(
+      adminConfig,
+      dbName,
+    );
+    const contentTypeProc = await this.createContentTypeProc(
+      adminConfig,
+      dbName,
+    );
+
+    return [
+      ...dropLoginsProc,
+      ...dropObjectsProc,
+      ...dropSchemaProc,
+      ...dropConstraintsProc,
+      ...contentTypeProc,
+    ];
   }
 
   static async dropProcedures(adminConfig: sql.config, dbName: string) {
@@ -631,10 +661,10 @@ export class DbBasics {
     adminConfig: sql.config,
     dbName: string,
     schemaName: string,
-  ) {
+  ): Promise<void> {
     const tables = await this.getTableNames(adminConfig, dbName, schemaName);
     for (const tableName of tables) {
-      this.dropConstraints(adminConfig, dbName, schemaName, tableName);
+      await this.dropConstraints(adminConfig, dbName, schemaName, tableName);
       const script = `DROP TABLE IF EXISTS [${schemaName}].[${tableName}]`;
       await runScript(adminConfig, script, dbName);
     }

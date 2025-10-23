@@ -1,6 +1,5 @@
 import sql from 'mssql';
-import { afterEach } from 'node:test';
-import { beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { adminCfg } from '../src/admin-cfg';
 import { DbBasics } from '../src/db-basics';
@@ -293,7 +292,7 @@ describe('DbBasics', () => {
     it('should install procedures without error', async () => {
       const result = await DbBasics.installProcedures(adminCfg, testDbName);
       // No error expected, just check that it returns
-      expect(result).toBeUndefined();
+      expect(result.length).toBe(5);
     });
     it('should drop procedures without error', async () => {
       await DbBasics.installProcedures(adminCfg, testDbName);

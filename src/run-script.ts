@@ -47,6 +47,7 @@ export async function runScript(
           (error as any).precedingErrors &&
           Array.isArray((error as any).precedingErrors)
         ) {
+          /* v8 ignore next -- @preserve */
           const preceding = (error as any).precedingErrors
             .map((e: Error) => e.message)
             .join('\n');

@@ -14,7 +14,7 @@ export default defineConfig({
   build: {
     copyPublicDir: false,
     minify: false,
-    // sourcemap: 'inline',
+    sourcemap: 'inline',
 
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
@@ -23,8 +23,11 @@ export default defineConfig({
     rollupOptions: {
       external: [
         '@rljson/rljson',
+        '@rljson/validate',
         '@rljson/json',
         '@rljson/hash',
+        '@rljson/is-ready',
+        'mssql',
         // Add all peer depencies from package.json here
       ],
       output: {

@@ -1,5 +1,6 @@
 // @license
 // Copyright (c) 2025 Rljson
+
 import { Io, IoTestSetup } from '@rljson/io';
 
 import { adminCfg } from '../src/admin-cfg';
@@ -15,7 +16,8 @@ class MyIoTestSetup implements IoTestSetup {
   async beforeAll(): Promise<void> {
     await DbBasics.createDatabase(adminCfg, this.dbName);
     await DbBasics.createSchema(adminCfg, this.dbName, 'main');
-    await DbBasics.installProcedures(adminCfg, this.dbName);
+    const result = await DbBasics.installProcedures(adminCfg, this.dbName);
+    console.log(`Installed ${result.length} procedures`);
     // No setup needed before all tests
     this.masterMind = new IoMssql(adminCfg, 'main');
   }
@@ -27,21 +29,17 @@ class MyIoTestSetup implements IoTestSetup {
   }
 
   async afterEach(): Promise<void> {
-    // Clean up environment after each test
-    const currentSchema = this.mio.currentSchema;
-    await DbBasics.dropTables(adminCfg, this.dbName, currentSchema);
-    await DbBasics.dropSchema(adminCfg, this.dbName, currentSchema);
     const currentLogin = this.mio.currentLogin;
-    await this.io.close().then(async () => {
+    await this.mio.close().then(async () => {
       await DbBasics.dropLogin(adminCfg, this.dbName, currentLogin);
     });
-    await DbBasics.dropDatabase(adminCfg, this.dbName);
     this._io = null;
   }
 
   async afterAll(): Promise<void> {
     // No cleanup needed after all tests
-    await this.masterMind.close();
+    // await this.masterMind.close();
+    await DbBasics.dropDatabase(adminCfg, this.dbName);
   }
   get io(): Io {
     if (!this._io) {
@@ -50,7 +48,7 @@ class MyIoTestSetup implements IoTestSetup {
     return this._io;
   }
 
-  private _io: Io | null = null;
+  protected _io: Io | null = null;
 }
 
 // .............................................................................

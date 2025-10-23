@@ -41,7 +41,7 @@ export class IoMssql implements Io {
     this._conn = new sql.ConnectionPool(this.userCfg!);
 
     this._conn.on('error', (err) => {
-      /* v8 ignore start */
+      /* v8 ignore next -- @preserve */
       console.error('SQL Server error:', err);
       /* v8 ignore end */
     });
@@ -60,28 +60,27 @@ export class IoMssql implements Io {
       this._schemaName,
       request.table,
     );
+
+    let isJson = false;
+    try {
+      JSON.parse(Array.isArray(result) ? result[0] : (result as string));
+      isJson = true;
+    } catch {
+      isJson = false;
+    }
+    if (!isJson) {
+      throw new Error(`Invalid JSON format: ${result[0]}`);
+    }
+
+    if (Array.isArray(result) && result.length > 0) {
+      const contentType = JSON.parse(result[0]);
+      return contentType.type_col as ContentType;
+    }
+
     const contentType = Array.isArray(result)
       ? JSON.parse(result[0])
       : JSON.parse(result as string);
     return contentType.type_col as ContentType;
-  }
-  observeTable(table: string, callback: (data: Rljson) => void): void {
-    const result = this._ioTools.observeTable(table, callback);
-    console.log(result);
-    console.log(table, callback);
-    throw new Error('Method not implemented.');
-  }
-  unobserveTable(table: string, callback: (data: Rljson) => void): void {
-    console.log(table, callback);
-    throw new Error('Method not implemented.');
-  }
-  unobserveAll(table?: string): void {
-    console.log(table);
-    throw new Error('Method not implemented.');
-  }
-  observers(table: string): ((data: Rljson) => void)[] {
-    console.log(table);
-    throw new Error('Method not implemented.');
   }
 
   async init(): Promise<void> {
@@ -221,7 +220,7 @@ export class IoMssql implements Io {
           if ((error as any).number === 2627) {
             return;
           }
-          /* v8 ignore start */
+          /* v8 ignore next -- @preserve */
           const errorMessage =
             error instanceof Error ? error.message : 'Unknown error';
           const fixedErrorMessage = errorMessage
@@ -238,12 +237,12 @@ export class IoMssql implements Io {
       }
 
       if (errorCount > 0) {
-        /* v8 ignore start */
+        /* v8 ignore next -- @preserve */
         const errorMessages = Array.from(errorStore.values()).join('\n');
         throw new Error(
           `Failed to write data to MSSQL database. Errors:\n${errorMessages}`,
         );
-        /* v8 ignore start */
+        /* v8 ignore next -- @preserve */
       }
     });
   }
@@ -343,14 +342,14 @@ export class IoMssql implements Io {
         if (result.recordset.length > 0) {
           return true;
         }
-        /* v8 ignore start */
+        /* v8 ignore next -- @preserve */
         await new Promise((resolve) => setTimeout(resolve, delay));
         /* v8 ignore end */
       }
     };
     await waitForUser();
     if (!waitForUser) {
-      /* v8 ignore start */
+      /* v8 ignore next -- @preserve */
       throw new Error(`Login ${loginName} not found after retries.`);
       /* v8 ignore end */
     }
@@ -368,7 +367,7 @@ export class IoMssql implements Io {
   static async makeConnection(userCfg: sql.config): Promise<sql.Request> {
     const serverPool = new sql.ConnectionPool(userCfg);
     serverPool.on('error', (err) => {
-      /* v8 ignore start */
+      /* v8 ignore next -- @preserve */
       console.error('SQL Server error:', err);
 
       /* v8 ignore end */
@@ -452,7 +451,7 @@ export class IoMssql implements Io {
       const dbRequest = new sql.Request(this._conn);
       await dbRequest.query(this.stm.createTable(tableCfg));
     } catch (error) {
-      /* v8 ignore start */
+      /* v8 ignore next -- @preserve */
       console.error('Error creating table:', error);
       /* v8 ignore end */
     }
@@ -474,7 +473,7 @@ export class IoMssql implements Io {
         // Duplicate entry, tableCfgs already exists
         return;
       }
-      /* v8 ignore start */
+      /* v8 ignore next -- @preserve */
       console.error('Error inserting table configuration:', error);
       /* v8 ignore end */
     }
@@ -571,7 +570,7 @@ export class IoMssql implements Io {
           case 'number':
             convertedRow[key] = val;
             break;
-          /* v8 ignore start */
+          /* v8 ignore next -- @preserve */
           default:
             throw new Error('Unsupported column type ' + type);
           /* v8 ignore end */

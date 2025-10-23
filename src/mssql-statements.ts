@@ -73,11 +73,10 @@ export class MsSqlStatements extends SqlStatements {
         .filter((col) => col.endsWith(this.suffix.ref)),
     );
 
-    /* v8 ignore start */
+    /* v8 ignore next -- @preserve */
     const foreignKeys = Array.isArray(foreignKeysArr)
       ? foreignKeysArr.filter(Boolean).join(', ')
       : foreignKeysArr || '';
-    /* v8 ignore stop */
 
     const colsWithPrimaryKey = `${sqlCreateColumns}, ${primaryKey}`;
     const colsWithPrimaryKeyAndForeignKeys = foreignKeys
@@ -129,7 +128,7 @@ export class MsSqlStatements extends SqlStatements {
     let constraint: string = ' ';
     for (const [column, value] of whereClause) {
       const columnWithFix = this.addColumnSuffix(column);
-      /* v8 ignore start */
+      /* v8 ignore next -- @preserve */
 
       if (typeof value === 'string') {
         constraint += `${columnWithFix} = '${value}' AND `;
@@ -144,15 +143,13 @@ export class MsSqlStatements extends SqlStatements {
       } else {
         throw new Error(`Unsupported value type for column ${column}`);
       }
-      /* v8 ignore stop */
     }
 
-    /* v8 ignore start */
+    /* v8 ignore next -- @preserve */
     constraint = constraint.endsWith('AND ')
       ? constraint.slice(0, -5)
       : constraint; // remove last ' AND '
 
-    /* v8 ignore stop */
     return constraint;
   }
   get tableCfg() {
