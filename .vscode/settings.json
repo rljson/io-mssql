@@ -3,8 +3,10 @@
         "Cfgs",
         "datareader",
         "NVARCHAR",
+        "recordset",
         "rljson",
         "sqltable",
-        "testdb"
+        "testdb",
+        "testschema"
     ]
 }

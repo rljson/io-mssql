@@ -3,7 +3,7 @@ import { ContentType } from '@rljson/rljson';
 import sql from 'mssql';
 
 import { runScript } from './run-script.ts';
-import { SqlStatements } from './sql-statements.ts';
+import { DbStatements } from './db-statements.ts';
 
 /// Database Initialization (create database, schema etc.)
 /// These are static methods to deal with the database itself
@@ -366,7 +366,7 @@ export class DbBasics {
     adminConfig: sql.config,
     dbName: string,
   ): Promise<string[]> {
-    const basicStatements = new SqlStatements();
+    const basicStatements = new DbStatements(this._mainSchema);
     const sourceTable = basicStatements.addTableSuffix('tableCfgs');
     const resultCol = basicStatements.addColumnSuffix('type');
     const script = `

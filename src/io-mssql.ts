@@ -24,13 +24,14 @@ import sql from 'mssql';
 import * as path from 'path';
 
 import { DbBasics } from './db-basics.ts';
-import { MsSqlStatements } from './mssql-statements.ts';
+// import { MsSqlStatements } from './mssql-statements.ts';
+import { DbStatements } from './db-statements.ts';
 
 export class IoMssql implements Io {
   private _conn: sql.ConnectionPool;
   private _ioTools!: IoTools;
   private _isReady = new IsReady();
-  private stm: MsSqlStatements;
+  private stm: DbStatements;
   private _schemaName: string = 'PantrySchema';
 
   constructor(
@@ -49,7 +50,7 @@ export class IoMssql implements Io {
     if (this.schemaName !== undefined) {
       this._schemaName = this.schemaName;
     }
-    this.stm = new MsSqlStatements(this._schemaName);
+    this.stm = new DbStatements(this._schemaName);
 
     // Connection will be established in the async init() method
   }
@@ -367,10 +368,7 @@ export class IoMssql implements Io {
   static async makeConnection(userCfg: sql.config): Promise<sql.Request> {
     const serverPool = new sql.ConnectionPool(userCfg);
     serverPool.on('error', (err) => {
-      /* v8 ignore next -- @preserve */
-      console.error('SQL Server error:', err);
-
-      /* v8 ignore end */
+     throw err;
     });
     await serverPool.connect();
     return new sql.Request(serverPool);
@@ -451,9 +449,7 @@ export class IoMssql implements Io {
       const dbRequest = new sql.Request(this._conn);
       await dbRequest.query(this.stm.createTable(tableCfg));
     } catch (error) {
-      /* v8 ignore next -- @preserve */
-      console.error('Error creating table:', error);
-      /* v8 ignore end */
+     throw error;
     }
 
     // Write tableCfg as first row into tableCfgs tables
@@ -473,9 +469,7 @@ export class IoMssql implements Io {
         // Duplicate entry, tableCfgs already exists
         return;
       }
-      /* v8 ignore next -- @preserve */
-      console.error('Error inserting table configuration:', error);
-      /* v8 ignore end */
+      throw error;  
     }
   };
 

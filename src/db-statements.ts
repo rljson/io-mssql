@@ -23,6 +23,7 @@ export class DbStatements  {
     col: '_col',
     tbl: '_tbl',
     tmp: '_tmp',
+    Ref: 'Ref',
   };
 
    /**
@@ -148,16 +149,17 @@ export class DbStatements  {
       return statements;
     }
 
+ 
   public insertTableCfg() {
-      const columnKeys = IoTools.tableCfgsTableCfg.columns.map((col) => col.key);
-      const columnKeysWithPostfix = columnKeys.map((col) =>
-        this.addColumnSuffix(col),
-      );
-      const columnsSql = columnKeysWithPostfix.join(', ');
-      const valuesSql = '?, '.repeat(columnKeys.length - 1) + '?';
-  
-      return `INSERT INTO ${this.tbl.main}${this.suffix.tbl} ( ${columnsSql} ) VALUES (${valuesSql})`;
-    }
+    const columnKeys = IoTools.tableCfgsTableCfg.columns.map((col) => col.key);
+    const columnKeysWithPostfix = columnKeys.map((col) =>
+      this.addColumnSuffix(col),
+    );
+    const columnsSql = columnKeysWithPostfix.join(', ');
+    const valuesSql = columnKeys.map((_, i) => `@p${i}`).join(', ');
+
+    return `INSERT INTO [${this.schemaName}].${this.tbl.main}${this.suffix.tbl} ( ${columnsSql} ) VALUES (${valuesSql})`;
+  }
 
   public foreignKeys(refColumnNames: string[]) {
     return refColumnNames
@@ -262,6 +264,10 @@ export class DbStatements  {
 
   public rowCount(tableKey: string) {
     return `SELECT COUNT(*) AS totalCount FROM [${this.schemaName}].[${this.addTableSuffix(tableKey)}]`;
+  }
+  
+  public selection(tableKey: string, columns: string, whereClause: string) {
+    return `SELECT ${columns} FROM ${tableKey} WHERE ${whereClause}`;
   }
 
   public allData(tableKey: string, namedColumns?: string) {
