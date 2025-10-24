@@ -22,8 +22,8 @@ describe('IoMssql', () => {
   const testSchemaName = 'PantrySchema';
 
   beforeAll(async () => {
-    await DbBasics.dropDatabase(adminCfg, testDbName);
-    await DbBasics.createDatabase(adminCfg, testDbName);
+    await DbBasics.dropDatabase(adminCfg,testDbName);
+    await DbBasics.createDatabase(adminCfg,testDbName);
     await DbBasics.useDatabase(adminCfg, testDbName);
     await DbBasics.createSchema(adminCfg, testDbName, testSchemaName);
     await DbBasics.installProcedures(adminCfg, testDbName);

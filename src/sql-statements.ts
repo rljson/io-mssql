@@ -18,6 +18,8 @@ import { ColumnCfg, TableCfg, TableKey } from '@rljson/rljson';
 // import { refName } from './constants.ts';
 
 export class SqlStatements {
+  constructor() {}
+
   /// simple  keywords and statements*******************
   connectingColumn: string = '_hash';
   queryIntro: string = 'SELECT DISTINCT';

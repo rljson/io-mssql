@@ -15,7 +15,6 @@ export class DbBasics {
   static _dropSchemaProc: string = 'DropSchema';
   static _contentTypeProc: string = 'GetContentType';
 
-  static basicStatements = new SqlStatements();
   //****Database */
   /// Create Database
   ///(the only situation where the master must be accessed first)
@@ -120,23 +119,6 @@ export class DbBasics {
     `;
     return await runScript(adminConfig, script, dbName);
   }
-
-  // Drop all user databases (only for testing)
-  // static async dropDatabases(adminConfig: sql.config) {
-  //   const script = `SELECT name FROM sys.databases
-  //   WHERE name NOT IN ('master', 'tempdb', 'model', 'msdb')`;
-  //   const result = await runScript(adminConfig, script, 'master');
-
-  //   const dbNames: string[] = [];
-  //   for (const row of result) {
-  //     dbNames.push(JSON.parse(row).name);
-  //   }
-  //   for (const dbName of dbNames) {
-  //     const dbKill = await this.dropDatabase(adminConfig, dbName);
-  //     console.log(dbKill);
-  //   }
-  //   return result;
-  // }
 
   //***Schema */
   /// Create Schema
@@ -384,8 +366,9 @@ export class DbBasics {
     adminConfig: sql.config,
     dbName: string,
   ): Promise<string[]> {
-    const sourceTable = this.basicStatements.addTableSuffix('tableCfgs');
-    const resultCol = this.basicStatements.addColumnSuffix('type');
+    const basicStatements = new SqlStatements();
+    const sourceTable = basicStatements.addTableSuffix('tableCfgs');
+    const resultCol = basicStatements.addColumnSuffix('type');
     const script = `
       CREATE OR ALTER PROCEDURE
       ${this._mainSchema}.${this._contentTypeProc} (@schemaName NVARCHAR(256), @tableKey NVARCHAR(256))

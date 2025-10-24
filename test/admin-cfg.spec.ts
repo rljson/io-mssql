@@ -30,10 +30,11 @@ describe('adminCfg', () => {
   });
 
   it('should have encrypt set to false in options', () => {
-    expect(adminCfg.options.encrypt).toBe(false);
+    expect(adminCfg.options).toBeDefined();
+    expect(adminCfg.options && adminCfg.options.encrypt).toBe(false);
   });
 
   it('should have trustServerCertificate set to true in options', () => {
-    expect(adminCfg.options.trustServerCertificate).toBe(true);
+    expect(adminCfg.options && adminCfg.options.trustServerCertificate).toBe(true);
   });
 });

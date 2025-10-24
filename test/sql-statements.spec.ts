@@ -5,10 +5,10 @@ import { beforeEach, describe, expect, it } from 'vitest';
 import { SqlStatements } from '../src/sql-statements';
 
 describe('SqlStatements', () => {
-  let sqlStatements: SqlStatements;
+  const sqlStatements: SqlStatements = new SqlStatements();
+    
 
   beforeEach(() => {
-    sqlStatements = new SqlStatements();
   });
 
   it('should convert JSON value types to SQL types', () => {
@@ -63,8 +63,16 @@ describe('SqlStatements', () => {
 
   it('should generate alterTable statements', () => {
     const addedColumns: ColumnCfg[] = [
-      { key: 'foo', type: 'string' },
-      { key: 'bar', type: 'number' },
+      {
+        key: 'foo', type: 'string',
+        titleLong: 'foo column',
+        titleShort: 'foo'
+      },
+      {
+        key: 'bar', type: 'number',
+        titleLong: 'bar column',
+        titleShort: 'bar'
+      },
     ];
     const stmts = sqlStatements.alterTable('myTable', addedColumns);
     expect(stmts[0]).toBe('ALTER TABLE myTable_tbl ADD COLUMN foo_col TEXT;');
@@ -74,15 +82,15 @@ describe('SqlStatements', () => {
   it('should serialize row as expected', () => {
     const tableCfg: TableCfg = {
       key: 'test',
-      type: 'ingredients',
+      type: 'components',
       isHead: false,
       isRoot: false,
       isShared: true,
       columns: [
-        { key: 'a', type: 'string' },
-        { key: 'b', type: 'number' },
-        { key: 'c', type: 'boolean' },
-        { key: 'd', type: 'json' },
+        { key: 'a', type: 'string', titleLong: 'A', titleShort: 'A' },
+        { key: 'b', type: 'number', titleLong: 'B', titleShort: 'B' },
+        { key: 'c', type: 'boolean', titleLong: 'C', titleShort: 'C' },
+        { key: 'd', type: 'json', titleLong: 'D', titleShort: 'D' },
       ],
     };
     const row = { a: 'foo', b: 42, c: true, d: { x: 1 } };
@@ -93,16 +101,16 @@ describe('SqlStatements', () => {
   it('should parse data as expected', () => {
     const tableCfg: TableCfg = {
       key: 'test',
-      type: 'ingredients',
+      type: 'components',
       isHead: false,
       isRoot: false,
       isShared: true,
       columns: [
-        { key: 'a', type: 'string' },
-        { key: 'b', type: 'number' },
-        { key: 'c', type: 'boolean' },
-        { key: 'd', type: 'json' },
-        { key: 'e', type: 'jsonArray' },
+        { key: 'a', type: 'string', titleLong: 'A', titleShort: 'A' },
+        { key: 'b', type: 'number', titleLong: 'B', titleShort: 'B' },
+        { key: 'c', type: 'boolean', titleLong: 'C', titleShort: 'C' },
+        { key: 'd', type: 'json', titleLong: 'D', titleShort: 'D' },
+        { key: 'e', type: 'jsonArray', titleLong: 'E', titleShort: 'E' },
       ],
     };
     const data = [
@@ -119,13 +127,13 @@ describe('SqlStatements', () => {
   it('should generate createTable SQL', () => {
     const tableCfg: TableCfg = {
       key: 'myTable',
-      type: 'ingredients',
+      type: 'components',
       isHead: false,
       isRoot: false,
       isShared: true,
       columns: [
-        { key: '_hash', type: 'string' },
-        { key: 'foo', type: 'number' },
+        { key: '_hash', type: 'string', titleLong: 'Hash', titleShort: 'Hash' },
+        { key: 'foo', type: 'number', titleLong: 'Foo', titleShort: 'Foo' },
       ],
     };
     const sql = sqlStatements.createTable(tableCfg);
@@ -349,11 +357,11 @@ describe('SqlStatements', () => {
   it('should throw error for unsupported column type in parseData', () => {
     const tableCfg: TableCfg = {
       key: 'test',
-      type: 'ingredients',
+      type: 'components',
       isHead: false,
       isRoot: false,
       isShared: true,
-      columns: [{ key: 'a', type: 'unsupported' as any }],
+      columns: [{ key: 'a', type: 'unsupported' as any, titleLong: 'A', titleShort: 'A' }],
     };
     const data = [{ a_col: 'foo' }];
     expect(() => sqlStatements.parseData(data, tableCfg)).toThrow(
@@ -364,13 +372,13 @@ describe('SqlStatements', () => {
   it('should handle null and undefined values in parseData', () => {
     const tableCfg: TableCfg = {
       key: 'test',
-      type: 'ingredients',
+      type: 'components',
       isHead: false,
       isRoot: false,
       isShared: true,
       columns: [
-        { key: 'a', type: 'string' },
-        { key: 'b', type: 'number' },
+        { key: 'a', type: 'string', titleLong: 'A', titleShort: 'A' },
+        { key: 'b', type: 'number', titleLong: 'B', titleShort: 'B' },
       ],
     };
     const data = [{ a_col: null, b_col: undefined }];
@@ -381,13 +389,13 @@ describe('SqlStatements', () => {
   it('should serializeRow with missing keys as null', () => {
     const tableCfg: TableCfg = {
       key: 'test',
-      type: 'ingredients',
+      type: 'components',
       isHead: false,
       isRoot: false,
       isShared: true,
       columns: [
-        { key: 'a', type: 'string' },
-        { key: 'b', type: 'number' },
+        { key: 'a', type: 'string', titleLong: 'A', titleShort: 'A' },
+        { key: 'b', type: 'number', titleLong: 'B', titleShort: 'B' },
       ],
     };
     const row = { a: 'foo' };
@@ -398,11 +406,11 @@ describe('SqlStatements', () => {
   it('should serializeRow with boolean false as 0', () => {
     const tableCfg: TableCfg = {
       key: 'test',
-      type: 'ingredients',
+      type: 'components',
       isHead: false,
       isRoot: false,
       isShared: true,
-      columns: [{ key: 'a', type: 'boolean' }],
+      columns: [{ key: 'a', type: 'boolean', titleLong: 'A', titleShort: 'A' }],
     };
     const row = { a: false };
     const result = sqlStatements.serializeRow(row, tableCfg);

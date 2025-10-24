@@ -5,6 +5,7 @@ import { DbBasics } from '../src/db-basics';
 import { runScript } from '../src/run-script';
 
 
+describe('runScript', () => {
 const testDb = 'TestDbForRunScript';
 
 beforeAll(async () => {
@@ -15,7 +16,6 @@ afterAll(async () => {
   await DbBasics.dropDatabase(adminCfg, testDb);
 });
 
-describe('runScript', () => {
   it('should connect to SQL Server and execute a single batch', async () => {
     const script = 'SELECT 1 AS RESULT';
     const result = await runScript(adminCfg, script, testDb);
@@ -42,7 +42,7 @@ describe('runScript', () => {
 
   it('should handle SQL syntax errors and return error messages', async () => {
     const script = 'SELECT * FROM NonExistentTable';
-    const result = await runScript(adminCfg, script, testDb);
+    const result = await runScript(adminCfg, script, testDb);   
     expect(result.length).toBeGreaterThan(0);
     expect(result[0]).toMatch(/invalid|could not find|does not exist|error/i);
   });

@@ -39,7 +39,6 @@ export async function runScript(
         }
       }
     } catch (error) {
-      console.error('Error executing SQL batch:', error);
       if (error instanceof Error) {
         result.push(error.message);
         // Check for precedingErrors property

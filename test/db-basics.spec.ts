@@ -5,8 +5,8 @@ import { adminCfg } from '../src/admin-cfg';
 import { DbBasics } from '../src/db-basics';
 import { runScript } from '../src/run-script';
 
-// @license
-// Copyright (c) 2025 Rljson
+describe('DbBasics', () => {
+
 let testDbName: string;
 let testSchemaName: string;
 let testLogin: string;
@@ -30,7 +30,6 @@ afterEach(async () => {
   await DbBasics.dropDatabase(adminCfg, testDbName);
 });
 
-describe('DbBasics', () => {
   describe('Database', () => {
     it('should not be created again', async () => {
       const dropped = await DbBasics.dropDatabase(adminCfg, testDbName);
