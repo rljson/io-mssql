@@ -192,7 +192,7 @@ describe("DbStatements", () => {
         // If not, this test should be adjusted or mocked accordingly.
         if (IoTools.tableCfgsTableCfg && Array.isArray(IoTools.tableCfgsTableCfg.columns)) {
             const sql = dbStatements.insertTableCfg();
-            expect(sql).toContain("INSERT INTO tableCfgs_tbl");
+            expect(sql).toContain("INSERT INTO [myschema].tableCfgs_tbl");
             expect(sql).toContain("VALUES");
         }
     });
