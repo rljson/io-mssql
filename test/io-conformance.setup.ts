@@ -2,15 +2,14 @@
 // Copyright (c) 2025 Rljson
 
 import { Io, IoTestSetup } from '@rljson/io';
-
 import { adminCfg } from '../src/admin-cfg';
-import { DbBasics } from '../src/db-basics';
-import { IoMssql } from '../src/io-mssql';
+const { DbBasics } = await  import( '../src/db-basics');
+const { IoMssql } = await import('../src/io-mssql');
 
 // ..............................................................................
 class MyIoTestSetup implements IoTestSetup {
-  masterMind!: IoMssql;
-  mio!: IoMssql;
+  masterMind: any;
+  mio: any;
   dbName = 'TestDb-For-Io-Conformance';
   dbBasics = new DbBasics();
 
