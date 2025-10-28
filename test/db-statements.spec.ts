@@ -1,6 +1,6 @@
 import { describe, it, expect } from "vitest";
-import { DbStatements } from "../src/db-statements";
 import { IoTools } from "@rljson/io";
+const { DbStatements } = await import( "../src/db-statements");
 
 describe("DbStatements", () => {
     const schemaName = "myschema";

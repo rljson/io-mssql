@@ -20,7 +20,7 @@ import {
 } from '@rljson/rljson';
 
 import sql from 'mssql';
-import { DbBasics } from './db-basics.ts';
+const { DbBasics } = await import('./db-basics.ts');
 const { DbStatements } = await import('./db-statements.ts');
 
 export class IoMssql implements Io {

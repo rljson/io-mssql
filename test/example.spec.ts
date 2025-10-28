@@ -8,7 +8,7 @@ import { describe, expect, it } from 'vitest';
 
 import { example } from '../src/example';
 
-import { expectGolden } from './setup/goldens';
+const { expectGolden } = await import( './setup/goldens');
 
 
 describe('example', () => {

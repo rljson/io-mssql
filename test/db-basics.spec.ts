@@ -1,28 +1,25 @@
 import sql from 'mssql';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { adminCfg } from '../src/admin-cfg';
-import { DbBasics } from '../src/db-basics';
-import { runScript } from '../src/run-script';
 import { IoTools } from '@rljson/io';
-const { DbStatements } = await import('../src/db-statements.ts');
 import { ContentType } from '@rljson/rljson';
+import { adminCfg } from '../src/admin-cfg';
+const { DbBasics } =  await import('../src/db-basics');
+const { runScript } = await import( '../src/run-script');
+const { DbStatements } = await import('../src/db-statements.ts');
 
 
-async function createMockTableCfg(schemaName: string): Promise<void> {
+async function createMiniTableCfgsTable(schemaName: string): Promise<void> {
   const stm = new DbStatements(schemaName);
   const tableCfg = IoTools.tableCfgsTableCfg;
   const script =  stm.createTable(tableCfg);
-  const result = await runScript(adminCfg, script, 'master');
-  console.log(result);
+  await runScript(adminCfg, script, 'master');
   const values = stm.serializeRow(tableCfg, tableCfg);
   const declaredValues: string[] = [];
   // Example: declaredValues.push('your string here');
   values.forEach((val, idx) => {
     declaredValues.push(`DECLARE @p${idx} NVARCHAR(MAX) = '${val}';`);
-  });
-  const insertQuery = stm.insertTableCfg();
-  console.log(insertQuery);
+  });  
   return;
 }
 
@@ -334,6 +331,7 @@ afterEach(async () => {
   });
 
   describe('Running Scripts', () => {
+    describe('Dropping Objects', () => {
     it('should drop all tables` constraints', async () => {
       const tableName = 'TestTable';
       const createTable = `CREATE TABLE ${testSchemaName}.${tableName} (ID INT PRIMARY KEY)`;
@@ -387,9 +385,13 @@ afterEach(async () => {
       );
       expect(remainingUsers.length).toBe(0);
     });
+  });
+
+
+    describe('Content Type', () => {
     it('should return a table content type', async () => {
       // Prepare: create tableCfgs table and insert a row
-      await createMockTableCfg(testSchemaName);
+      await createMiniTableCfgsTable(testSchemaName);
       const script = `CREATE TABLE ${testSchemaName}.tableCfgs_tbl (type_col NVARCHAR(255) PRIMARY KEY, key_col NVARCHAR(50))`;
       await runScript(adminCfg, script, testDbName);  
       const insertScript = `INSERT INTO ${testSchemaName}.tableCfgs_tbl (type_col, key_col) VALUES ('tableCfgs', 'tableCfgs')`;
@@ -419,6 +421,44 @@ afterEach(async () => {
         'NonExistentTable'
       )
       ).rejects.toThrow('Table "NonExistentTable" not found');
+    });
+
+
+  describe('Transaction Handling', () => {
+    const transactionName = 'TestTransaction';
+
+    it('should begin a transaction', async () => {
+      const result = await dbBasics.transact(
+        adminCfg,
+        testDbName,
+        'begin',
+        transactionName
+      );
+      expect(Array.isArray(result)).toBe(true);
+    });
+
+    it('should commit a transaction', async () => {
+      // Begin transaction first
+      await dbBasics.transact(adminCfg, testDbName, 'begin', transactionName);
+      const result = await dbBasics.transact(
+        adminCfg,
+        testDbName,
+        'commit',
+        transactionName
+      );
+      expect(Array.isArray(result)).toBe(true);
+    });
+
+    it('should rollback a transaction', async () => {
+      // Begin transaction first
+      await dbBasics.transact(adminCfg, testDbName, 'begin', transactionName);
+      const result = await dbBasics.transact(
+        adminCfg,
+        testDbName,
+        'rollback',
+        transactionName
+      );
+      expect(Array.isArray(result)).toBe(true);
     });
   });
 
@@ -476,3 +516,5 @@ afterEach(async () => {
     });
   });
 });
+  });
+})

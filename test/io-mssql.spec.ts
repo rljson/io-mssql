@@ -1,11 +1,3 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-
-import { adminCfg } from '../src/admin-cfg';
-const { DbBasics } = await import('../src/db-basics.ts');
-const { IoMssql } = await import('../src/io-mssql.ts');
-
-
-
 // @license
 // Copyright (c) 2025 Rljson
 //
@@ -15,6 +7,12 @@ const { IoMssql } = await import('../src/io-mssql.ts');
 //
 // Use of this source code is governed by terms that can be
 // found in the LICENSE file in the root of this package.
+
+import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+
+import { adminCfg } from '../src/admin-cfg';
+const { DbBasics } = await import('../src/db-basics.ts');
+const { IoMssql } = await import('../src/io-mssql.ts');
 
 describe('IoMssql', () => {
   let ioSql: any;

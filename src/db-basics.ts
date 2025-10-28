@@ -1,7 +1,7 @@
-import { ContentType } from '@rljson/rljson';
 import sql from 'mssql';
-import { runScript } from './run-script.ts';
-import { dbProcedures as DbProcs } from './db-procedures.ts';
+import { ContentType } from '@rljson/rljson';
+const { runScript } = await import( './run-script.ts');
+const { dbProcedures } = await import('./db-procedures.ts');
 const { DbStatements } = await import('./db-statements.ts');
 
 /// Database Initialization (create database, schema etc.)
@@ -166,7 +166,7 @@ export class DbBasics {
   ): Promise<string[]> {
     const script = `
       CREATE OR ALTER PROCEDURE
-          ${this._mainSchema}.${DbProcs.dropLogins}( @SchemaName NVARCHAR(50))
+          ${this._mainSchema}.${dbProcedures.dropLogins}( @SchemaName NVARCHAR(50))
           AS
       BEGIN
         DECLARE @Prefix NVARCHAR(100) = 'test_';
@@ -205,7 +205,7 @@ export class DbBasics {
     dbName: string,
   ): Promise<string[]> {
     const script = `    CREATE OR ALTER   PROCEDURE
-      [${this._mainSchema}].[${DbProcs.dropObjects}]
+      [${this._mainSchema}].[${dbProcedures.dropObjects}]
       AS
       -- Delete all schemas that have been created
       -- apart from the main schema
@@ -243,7 +243,7 @@ export class DbBasics {
   ): Promise<string[]> {
     const script = `
       CREATE OR ALTER PROCEDURE
-      ${this._mainSchema}.${DbProcs.dropSchema} (@SchemaName NVARCHAR(50))
+      ${this._mainSchema}.${dbProcedures.dropSchema} (@SchemaName NVARCHAR(50))
       AS
       BEGIN
       DECLARE @sql nvarchar(max) = N''
@@ -308,7 +308,7 @@ export class DbBasics {
 
       END
       GO --REM
-      SELECT 'Procedure ${DbProcs.dropSchema} for ${this._mainSchema} created' AS Status;
+      SELECT 'Procedure ${dbProcedures.dropSchema} for ${this._mainSchema} created' AS Status;
     `;
     return await runScript(adminConfig, script, dbName);
   }
@@ -319,7 +319,7 @@ export class DbBasics {
   ): Promise<string[]> {
     const script = `
       CREATE OR ALTER PROCEDURE
-      ${this._mainSchema}.${DbProcs.dropConstraints} (@SchemaName NVARCHAR(50), @TableName NVARCHAR(50))
+      ${this._mainSchema}.${dbProcedures.dropConstraints} (@SchemaName NVARCHAR(50), @TableName NVARCHAR(50))
       AS
       BEGIN
         DECLARE @sql NVARCHAR(MAX) = N''
@@ -351,7 +351,7 @@ export class DbBasics {
 
   END
       GO --REM
-      SELECT 'Procedure ${DbProcs.dropConstraints} for ${this._mainSchema} created' AS Status;
+      SELECT 'Procedure ${dbProcedures.dropConstraints} for ${this._mainSchema} created' AS Status;
     `;
     return await runScript(adminConfig, script, dbName);
   }
@@ -365,7 +365,7 @@ export class DbBasics {
     const resultCol = basicStatements.addColumnSuffix('type');
     const script = `
       CREATE OR ALTER PROCEDURE
-      ${this._mainSchema}.${DbProcs.contentType} (@schemaName NVARCHAR(256), @tableKey NVARCHAR(256))
+      ${this._mainSchema}.${dbProcedures.contentType} (@schemaName NVARCHAR(256), @tableKey NVARCHAR(256))
       AS
       BEGIN
         DECLARE @SQL NVARCHAR(MAX) = N''
@@ -373,7 +373,7 @@ export class DbBasics {
         EXEC sp_executesql @SQL, N'@tableKey NVARCHAR(256)', @tableKey
       END
       GO --REM
-      SELECT 'Procedure ${DbProcs.contentType} for ${this._mainSchema} created' AS Status;
+      SELECT 'Procedure ${dbProcedures.contentType} for ${this._mainSchema} created' AS Status;
     `;
     return await runScript(adminConfig, script, dbName);
   }
@@ -384,16 +384,13 @@ export class DbBasics {
     schemaName: string,
     tableName: string,
   ): Promise<ContentType> {
-    const script = `EXEC ${this._mainSchema}.${DbProcs.contentType} @schemaName = '${schemaName}', @tableKey = '${tableName}'`;
+    const script = `EXEC ${this._mainSchema}.${dbProcedures.contentType} @schemaName = '${schemaName}', @tableKey = '${tableName}'`;
     const result = await runScript(adminConfig, script, dbName);
 
     if (result.length > 1) {
       throw new Error(`Table "${tableName}" not found`);
     }
-    const parsed = JSON.parse(result[0]);
-    if (!parsed || !parsed[result[0] && Object.keys(parsed)[0]]) {
-      throw new Error(`ContentType not found for table "${tableName}"`);
-    }
+    const parsed = JSON.parse(result[0]);    
     return parsed[Object.keys(parsed)[0]] as ContentType;
    
   }
@@ -598,10 +595,10 @@ export class DbBasics {
 
   public async dropProcedures(adminConfig: sql.config, dbName: string) {
     const procedureNames = [
-      DbProcs.dropConstraints,
-      DbProcs.dropObjects,
-      DbProcs.dropLogins,
-      DbProcs.dropSchema,
+      dbProcedures.dropConstraints,
+      dbProcedures.dropObjects,
+      dbProcedures.dropLogins,
+      dbProcedures.dropSchema,
     ];
     for (const proc of procedureNames) {
       const script = `DROP PROCEDURE IF EXISTS [${this._mainSchema}].[${proc}]`;
@@ -615,7 +612,7 @@ export class DbBasics {
     schemaName: string,
     tableName: string,
   ) {
-    const script = `EXEC ${this._mainSchema}.${DbProcs.dropConstraints} @SchemaName = N'${schemaName}', @TableName = N'${tableName}'`;
+    const script = `EXEC ${this._mainSchema}.${dbProcedures.dropConstraints} @SchemaName = N'${schemaName}', @TableName = N'${tableName}'`;
     await runScript(adminConfig, script, dbName);
   }
 

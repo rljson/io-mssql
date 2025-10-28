@@ -1,7 +1,7 @@
 import { IoTools } from "@rljson/io";
 import { Json, JsonValue, JsonValueType } from "@rljson/json";
 import { ColumnCfg, TableCfg, TableKey } from "@rljson/rljson";
-import { dbProcedures as DbProcs } from './db-procedures.ts';
+const { dbProcedures} = await import('./db-procedures.ts');
 export class DbStatements  {
   
   private _mainSchema: string;
@@ -166,7 +166,7 @@ export class DbStatements  {
   }
 
   public getContentType(tableName: string, schemaName: string) {
-    return  `EXEC ${this._mainSchema}.${DbProcs.contentType} @schemaName = '${schemaName}', @tableKey = '${tableName}'`;
+    return  `EXEC ${this._mainSchema}.${dbProcedures.contentType} @schemaName = '${schemaName}', @tableKey = '${tableName}'`;
   }
 
   public foreignKeys(refColumnNames: string[]) {
