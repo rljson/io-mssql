@@ -5,6 +5,7 @@
     "module": "NodeNext",
     "lib": ["ES2021", "DOM", "DOM.Iterable"],
     "skipLibCheck": true,
+    "forceConsistentCasingInFileNames": true,
 
     /* Distribution */
     "rootDir": "src",

@@ -1,8 +1,9 @@
 import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { adminCfg } from '../src/admin-cfg';
-import { DbBasics } from '../src/db-basics';
-import { IoMssql } from '../src/io-mssql'; // Adjust the path as needed
+const { DbBasics } = await import('../src/db-basics.ts');
+const { IoMssql } = await import('../src/io-mssql.ts');
+
 
 
 // @license
@@ -16,17 +17,17 @@ import { IoMssql } from '../src/io-mssql'; // Adjust the path as needed
 // found in the LICENSE file in the root of this package.
 
 describe('IoMssql', () => {
-  let ioSql: IoMssql;
-
+  let ioSql: any;
   const testDbName = 'TestDb';
   const testSchemaName = 'PantrySchema';
+  const dbBasics = new DbBasics();
 
   beforeAll(async () => {
-    await DbBasics.dropDatabase(adminCfg,testDbName);
-    await DbBasics.createDatabase(adminCfg,testDbName);
-    await DbBasics.useDatabase(adminCfg, testDbName);
-    await DbBasics.createSchema(adminCfg, testDbName, testSchemaName);
-    await DbBasics.installProcedures(adminCfg, testDbName);
+    await dbBasics.dropDatabase(adminCfg, testDbName);
+    await dbBasics.createDatabase(adminCfg, testDbName);
+    await dbBasics.useDatabase(adminCfg, testDbName);
+    await dbBasics.createSchema(adminCfg, testDbName, testSchemaName);
+    await dbBasics.installProcedures(adminCfg, testDbName);
   });
 
   beforeEach(async () => {
@@ -103,7 +104,7 @@ describe('IoMssql', () => {
 
   it('should execute installScripts without throwing', async () => {
     await expect(
-      DbBasics.installProcedures(adminCfg, testDbName),
+      dbBasics.installProcedures(adminCfg, testDbName),
     ).resolves.not.toThrow();
   });
 });

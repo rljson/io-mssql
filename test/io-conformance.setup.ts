@@ -12,11 +12,12 @@ class MyIoTestSetup implements IoTestSetup {
   masterMind!: IoMssql;
   mio!: IoMssql;
   dbName = 'TestDb-For-Io-Conformance';
+  dbBasics = new DbBasics();
 
   async beforeAll(): Promise<void> {
-    await DbBasics.createDatabase(adminCfg, this.dbName);
-    await DbBasics.createSchema(adminCfg, this.dbName, 'main');
-    const result = await DbBasics.installProcedures(adminCfg, this.dbName);
+    await this.dbBasics.createDatabase(adminCfg, this.dbName);
+    await this.dbBasics.createSchema(adminCfg, this.dbName, 'main');
+    const result = await  this.dbBasics.installProcedures(adminCfg, this.dbName);
     console.log(`Installed ${result.length} procedures`);
     // No setup needed before all tests
     this.masterMind = new IoMssql(adminCfg, 'main');
@@ -31,7 +32,7 @@ class MyIoTestSetup implements IoTestSetup {
   async afterEach(): Promise<void> {
     const currentLogin = this.mio.currentLogin;
     await this.mio.close().then(async () => {
-      await DbBasics.dropLogin(adminCfg, this.dbName, currentLogin);
+      await this.dbBasics.dropLogin(adminCfg, this.dbName, currentLogin);
     });
     this._io = null;
   }
@@ -39,7 +40,7 @@ class MyIoTestSetup implements IoTestSetup {
   async afterAll(): Promise<void> {
     // No cleanup needed after all tests
     // await this.masterMind.close();
-    await DbBasics.dropDatabase(adminCfg, this.dbName);
+    await this.dbBasics.dropDatabase(adminCfg, this.dbName);
   }
   get io(): Io {
     if (!this._io) {

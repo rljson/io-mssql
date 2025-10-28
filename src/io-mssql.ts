@@ -19,20 +19,17 @@ import {
   TableType,
 } from '@rljson/rljson';
 
-import { promises as fs } from 'fs';
 import sql from 'mssql';
-import * as path from 'path';
-
 import { DbBasics } from './db-basics.ts';
-// import { MsSqlStatements } from './mssql-statements.ts';
-import { DbStatements } from './db-statements.ts';
+const { DbStatements } = await import('./db-statements.ts');
 
 export class IoMssql implements Io {
   private _conn: sql.ConnectionPool;
   private _ioTools!: IoTools;
   private _isReady = new IsReady();
-  private stm: DbStatements;
   private _schemaName: string = 'PantrySchema';
+  private stm = new DbStatements(this._schemaName);
+  private _dbBasics = new DbBasics();
 
   constructor(
     private readonly userCfg: sql.config,
@@ -43,45 +40,26 @@ export class IoMssql implements Io {
 
     this._conn.on('error', (err) => {
       /* v8 ignore next -- @preserve */
-      console.error('SQL Server error:', err);
-      /* v8 ignore end */
+      console.error('SQL Server error:', err);      
     });
 
     if (this.schemaName !== undefined) {
       this._schemaName = this.schemaName;
     }
     this.stm = new DbStatements(this._schemaName);
+    this._dbBasics = new DbBasics();
 
     // Connection will be established in the async init() method
   }
   async contentType(request: { table: string }): Promise<ContentType> {
-    const result = await DbBasics.contentType(
+    const result = await this._dbBasics.contentType(
       this.userCfg,
       this.userCfg.database!,
       this._schemaName,
       request.table,
     );
 
-    let isJson = false;
-    try {
-      JSON.parse(Array.isArray(result) ? result[0] : (result as string));
-      isJson = true;
-    } catch {
-      isJson = false;
-    }
-    if (!isJson) {
-      throw new Error(`Invalid JSON format: ${result[0]}`);
-    }
-
-    if (Array.isArray(result) && result.length > 0) {
-      const contentType = JSON.parse(result[0]);
-      return contentType.type_col as ContentType;
-    }
-
-    const contentType = Array.isArray(result)
-      ? JSON.parse(result[0])
-      : JSON.parse(result as string);
-    return contentType.type_col as ContentType;
+    return result as ContentType;
   }
 
   async init(): Promise<void> {
@@ -301,12 +279,12 @@ export class IoMssql implements Io {
     const loginName = `login_${randomString}`;
     const loginPassword = `P@ssw0rd!${randomString}`;
     // Create database and schema
-    await DbBasics.createDatabase(this.userCfg, dbName);
-    await DbBasics.createSchema(this.userCfg, dbName, testSchemaName);
+    await this._dbBasics.createDatabase(this.userCfg, dbName);
+    await this._dbBasics.createSchema(this.userCfg, dbName, testSchemaName);
 
     // Create login and user
-    await DbBasics.createLogin(this.userCfg, dbName, loginName, loginPassword);
-    await DbBasics.createUser(
+    await this._dbBasics.createLogin(this.userCfg, dbName, loginName, loginPassword);
+    await this._dbBasics.createUser(
       this.userCfg,
       dbName,
       testSchemaName,
@@ -314,7 +292,7 @@ export class IoMssql implements Io {
       loginName,
     );
 
-    await DbBasics.grantSchemaPermission(
+    await this._dbBasics.grantSchemaPermission(
       this.userCfg,
       dbName,
       testSchemaName,
@@ -374,63 +352,6 @@ export class IoMssql implements Io {
     return new sql.Request(serverPool);
   }
 
-  static async installScripts(userCfg: sql.config): Promise<void> {
-    const dbRequest = await this.makeConnection(userCfg);
-
-    // Read the install-script.sql file from the same directory as this file
-    const scriptPath = path.resolve(__dirname, 'install-script.sql');
-    const scriptContent = await fs.readFile(scriptPath, 'utf-8');
-    const separator = 'GO --REM'; // 'GO' ist not recognized by mssql, so we use a custom separator'
-    // Split the script content by the separator
-    const scriptParts = scriptContent.split(separator);
-    for (const part of scriptParts) {
-      const cleanedPart = part.replace(/[\r]/g, ' ').trim();
-      if (cleanedPart) {
-        await dbRequest.query(cleanedPart);
-      }
-    }
-  }
-
-  static async dropTestLogins(
-    userCfg: sql.config,
-    schemaName: string,
-  ): Promise<void> {
-    const dbRequest = await this.makeConnection(userCfg);
-    await DbBasics.dropUsers(userCfg, userCfg.database!, schemaName);
-    await dbRequest.query(`EXEC PantrySchema.DropAllPantryLogins`);
-  }
-
-  static async dropTestSchemas(userCfg: sql.config): Promise<void> {
-    const dbRequest = await this.makeConnection(userCfg);
-    await dbRequest.query(`EXEC PantrySchema.DropAllPantryObjects`);
-  }
-
-  // Extra methods to manage tests
-
-  static async dropCurrentConstraints(
-    userCfg: sql.config,
-    schemaName: string,
-  ): Promise<void> {
-    const dbRequest = await this.makeConnection(userCfg);
-    await dbRequest.query(
-      `EXEC PantrySchema.DropCurrentConstraints [${schemaName}]`,
-    );
-  }
-  static async DropSchema(
-    userCfg: sql.config,
-    schemaName: string,
-  ): Promise<void> {
-    const dbRequest = await this.makeConnection(userCfg);
-    await dbRequest.query(`EXEC PantrySchema.DropSchema [${schemaName}]`);
-  }
-  static async dropCurrentLogin(
-    userCfg: sql.config,
-    loginName: string,
-  ): Promise<void> {
-    const dbRequest = await this.makeConnection(userCfg);
-    await dbRequest.query(`EXEC PantrySchema.DropCurrentLogin [${loginName}]`);
-  }
-
   public get currentSchema(): string {
     return this._schemaName;
   }
@@ -455,7 +376,6 @@ export class IoMssql implements Io {
     // Write tableCfg as first row into tableCfgs tables
     // As this is the first row to be entered, it is entered manually
     const values = this.stm.serializeRow(tableCfg, tableCfg);
-
     const insertQuery = this.stm.insertTableCfg();
     const sqlReq = new sql.Request(this._conn);
     // Add each value as an input parameter

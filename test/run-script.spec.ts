@@ -1,19 +1,21 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
 import { adminCfg } from '../src/admin-cfg';
-import { DbBasics } from '../src/db-basics';
-import { runScript } from '../src/run-script';
+
+const {DbBasics} = await import('../src/db-basics.ts');
+const { runScript } = await import('../src/run-script');
 
 
 describe('runScript', () => {
 const testDb = 'TestDbForRunScript';
+const dbBasics = new DbBasics();
 
 beforeAll(async () => {
-  await DbBasics.createDatabase(adminCfg, testDb);
+  await dbBasics.createDatabase(adminCfg, testDb);
 });
 
 afterAll(async () => {
-  await DbBasics.dropDatabase(adminCfg, testDb);
+  await dbBasics.dropDatabase(adminCfg, testDb);
 });
 
   it('should connect to SQL Server and execute a single batch', async () => {

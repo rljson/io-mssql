@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { shouldUpdateGoldens } from './goldens';
+const { shouldUpdateGoldens } = await import('./goldens.ts');
 
 describe('shouldUpdateGoldens', () => {
   it('should be true when process.argv contains --update-goldens', () => {

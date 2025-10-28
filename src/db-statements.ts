@@ -1,11 +1,15 @@
 import { IoTools } from "@rljson/io";
 import { Json, JsonValue, JsonValueType } from "@rljson/json";
 import { ColumnCfg, TableCfg, TableKey } from "@rljson/rljson";
-
+import { dbProcedures as DbProcs } from './db-procedures.ts';
 export class DbStatements  {
+  
+  private _mainSchema: string;
   // ********************************************************************
   // Initialization needs the schema name
-	constructor(public schemaName: string) { }
+	constructor(public schemaName: string, mainSchema: string = 'main') {
+    this._mainSchema = mainSchema;
+  }
 
   // ********************************************************************
   // General statements and properties
@@ -159,6 +163,10 @@ export class DbStatements  {
     const valuesSql = columnKeys.map((_, i) => `@p${i}`).join(', ');
 
     return `INSERT INTO [${this.schemaName}].${this.tbl.main}${this.suffix.tbl} ( ${columnsSql} ) VALUES (${valuesSql})`;
+  }
+
+  public getContentType(tableName: string, schemaName: string) {
+    return  `EXEC ${this._mainSchema}.${DbProcs.contentType} @schemaName = '${schemaName}', @tableKey = '${tableName}'`;
   }
 
   public foreignKeys(refColumnNames: string[]) {

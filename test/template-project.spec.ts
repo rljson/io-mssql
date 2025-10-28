@@ -6,7 +6,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { TemplateProject } from '../src/template-project';
+const { TemplateProject } = await import('../src/template-project');
 
 
 describe('TemplateProject', () => {
