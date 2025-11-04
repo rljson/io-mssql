@@ -14,7 +14,7 @@ export default defineConfig({
   build: {
     copyPublicDir: false,
     minify: false,
-    sourcemap: 'inline',
+    // sourcemap: 'inline',
 
     lib: {
       entry: resolve(__dirname, 'src/index.ts'),
@@ -28,7 +28,7 @@ export default defineConfig({
         '@rljson/hash',
         '@rljson/is-ready',
         'mssql',
-        // Add all peer depencies from package.json here
+        // Add all peer dependencies from package.json here
       ],
       output: {
         globals: {},

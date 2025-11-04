@@ -3,6 +3,9 @@ import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 import { adminCfg } from '../src/admin-cfg';
 
 const {DbBasics} = await import('../src/db-basics.ts');
+while (typeof DbBasics !== 'function') {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
 const { runScript } = await import('../src/run-script');
 
 
@@ -11,6 +14,9 @@ const testDb = 'TestDbForRunScript';
 const dbBasics = new DbBasics();
 
 beforeAll(async () => {
+   while (typeof DbBasics !== 'function') {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
   await dbBasics.createDatabase(adminCfg, testDb);
 });
 

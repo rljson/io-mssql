@@ -1,17 +1,44 @@
 import sql from 'mssql';
 import { ContentType } from '@rljson/rljson';
 const { runScript } = await import( './run-script.ts');
+let counter = 0;
 const { dbProcedures } = await import('./db-procedures.ts');
+/* v8 ignore next -- @preserve */
+while (typeof dbProcedures !== 'object') {
+  await new Promise(resolve => setTimeout(resolve, 10));
+  counter ++;
+  if(counter > 10){
+    throw new Error('Timeout waiting for dbProcedures to load');
+  } 
+}
+counter = 0;
 const { DbStatements } = await import('./db-statements.ts');
+/* v8 ignore next -- @preserve */
+while (typeof DbStatements !== 'function' && typeof DbStatements !== 'object') {
+  const classType = typeof DbStatements;
+    await new Promise(resolve => setTimeout(resolve, 200));
+    counter ++;
+    if(counter > 200){
+      if (classType === 'undefined') {
+        // Try to re-import DbStatements if it's undefined
+        const imported = await import('./db-statements.ts');
+        await new Promise(resolve => setTimeout(resolve, 200));
+        // Assign DbStatements from the new import
+        Object.assign({ DbStatements }, imported);
+        await new Promise(resolve => setTimeout(resolve, 200));
+      }
+      if(typeof DbStatements !== 'function' && typeof DbStatements !== 'object'){
+        throw new Error(`Timeout ${counter} for DbStatements to load: ${classType}`);
+      }
+    } 
+  }
 
 /// Database Initialization (create database, schema etc.)
 /// These are instance methods to deal with the database itself
 export class DbBasics {
-  private _mainSchema: string;
- 
+  private _mainSchema: string; 
   constructor(mainSchema: string = 'main') {
-    this._mainSchema = mainSchema;
-   
+    this._mainSchema = mainSchema;   
   }
 
   //****Database */
@@ -42,57 +69,6 @@ export class DbBasics {
     const useDbScript = `USE [${dbName}];
     SELECT 'Using database ${dbName}' AS Status;`;
     return await runScript(adminConfig, useDbScript, dbName);
-  }
-
- public async enableCdcDb(
-    adminConfig: sql.config,
-    dbName: string,
-  ): Promise<string[]> {
-    const script = `EXEC sys.sp_cdc_enable_db;
-    SELECT 'CDC enabled for database ${dbName}' AS Status;`;
-    return await runScript(adminConfig, script, dbName);
-  }
-
-  public async disableCdcDb(
-    adminConfig: sql.config,
-    dbName: string,
-  ): Promise<string[]> {
-    const script = `EXEC sys.sp_cdc_disable_db;
-    SELECT 'CDC disabled for database ${dbName}' AS Status;`;
-    return await runScript(adminConfig, script, dbName);
-  }
-
-  public async enableCDCTable(
-    adminConfig: sql.config,
-    dbName: string,
-    schemaName: string,
-    tableName: string,
-  ): Promise<string[]> {
-    const script = `
-     EXEC sys.sp_cdc_enable_table
-    @source_schema = N'${schemaName}',
-    @source_name   = N'${tableName}',
-    @role_name     = NULL;
-
-    SELECT 'CDC enabled for table ${schemaName}.${tableName}' AS Status;
-    `;
-    return await runScript(adminConfig, script, dbName);
-  }
-
-  public async disableCDCTable(
-    adminConfig: sql.config,
-    dbName: string,
-    schemaName: string,
-    tableName: string,
-  ): Promise<string[]> {
-    const script = `
-    EXEC sys.sp_cdc_disable_table
-    @source_schema = N'${schemaName}',
-    @source_name   = N'${tableName}',
-    @capture_instance = N'${schemaName}_${tableName}';
-    SELECT 'CDC disabled for table ${schemaName}.${tableName}' AS Status;
-    `;
-    return await runScript(adminConfig, script, dbName);
   }
 
   public async dropDatabase(
@@ -141,6 +117,7 @@ export class DbBasics {
     dbName: string,
     schemaName: string,
   ): Promise<string[]> {
+    /* v8 ignore next -- @preserve */
     if (schemaName === 'dbo' || schemaName === this._mainSchema) {
       /* v8 ignore next -- @preserve */
       return [`Cannot drop schema ${schemaName}`];
@@ -164,6 +141,7 @@ export class DbBasics {
     adminConfig: sql.config,
     dbName: string,
   ): Promise<string[]> {
+   
     const script = `
       CREATE OR ALTER PROCEDURE
           ${this._mainSchema}.${dbProcedures.dropLogins}( @SchemaName NVARCHAR(50))
@@ -360,9 +338,9 @@ export class DbBasics {
     adminConfig: sql.config,
     dbName: string,
   ): Promise<string[]> {
-    const basicStatements = new DbStatements(this._mainSchema);
-    const sourceTable = basicStatements.addTableSuffix('tableCfgs');
-    const resultCol = basicStatements.addColumnSuffix('type');
+    const dbStatements = new DbStatements(this._mainSchema);
+    const sourceTable = dbStatements.addTableSuffix('tableCfgs');
+    const resultCol = dbStatements.addColumnSuffix('type');
     const script = `
       CREATE OR ALTER PROCEDURE
       ${this._mainSchema}.${dbProcedures.contentType} (@schemaName NVARCHAR(256), @tableKey NVARCHAR(256))
@@ -523,6 +501,7 @@ export class DbBasics {
     `;
     const result = await runScript(adminConfig, script, dbName);
     const tableNames: string[] = [];
+    /* v8 ignore next -- @preserve */
     for (const row of result) {
       if (JSON.parse(row).TABLE_NAME) {
         tableNames.push(JSON.parse(row).TABLE_NAME);

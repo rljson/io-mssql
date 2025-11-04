@@ -3,8 +3,25 @@
 
 import { Io, IoTestSetup } from '@rljson/io';
 import { adminCfg } from '../src/admin-cfg';
+let counter = 0;
 const { DbBasics } = await  import( '../src/db-basics');
+while (typeof DbBasics !== 'function') {
+  await new Promise(resolve => setTimeout(resolve, 150));
+  counter ++;
+  if(counter > 50){
+    throw new Error('Timeout waiting for DbBasics to load');
+  }
+}
 const { IoMssql } = await import('../src/io-mssql');
+while (typeof IoMssql !== 'function') {
+  const classType = typeof IoMssql;
+  await new Promise(resolve => setTimeout(resolve, 150));
+  console.log('Waiting for IoMssql to load...');
+  counter ++;
+  if(counter > 50){
+    throw new Error(`Timeout waiting for IoMssql to load: ${classType}`);
+  }
+}
 
 // ..............................................................................
 class MyIoTestSetup implements IoTestSetup {
@@ -16,9 +33,8 @@ class MyIoTestSetup implements IoTestSetup {
   async beforeAll(): Promise<void> {
     await this.dbBasics.createDatabase(adminCfg, this.dbName);
     await this.dbBasics.createSchema(adminCfg, this.dbName, 'main');
-    const result = await  this.dbBasics.installProcedures(adminCfg, this.dbName);
-    console.log(`Installed ${result.length} procedures`);
-    // No setup needed before all tests
+    await  this.dbBasics.installProcedures(adminCfg, this.dbName);
+    
     this.masterMind = new IoMssql(adminCfg, 'main');
   }
 

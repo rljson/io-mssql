@@ -1,6 +1,10 @@
 import { describe, it, expect } from "vitest";
 import { IoTools } from "@rljson/io";
+import { ColumnCfg } from "@rljson/rljson";
 const { DbStatements } = await import( "../src/db-statements");
+while (typeof DbStatements !== 'function') {
+  await new Promise(resolve => setTimeout(resolve, 100));
+}
 
 describe("DbStatements", () => {
     const schemaName = "myschema";
@@ -61,6 +65,28 @@ describe("DbStatements", () => {
         expect(dbStatements.dropDatabase("testdb")).toBe("DROP DATABASE [testdb]");
     });
 
+    describe("foreignKeys", () => {
+      it("should generate correct foreign key constraint for single reference", () => {
+        const refCol = "userRef";
+        const result = dbStatements.foreignKeys([refCol]);
+        expect(result).toBe(
+          `CONSTRAINT FK_userRef_col FOREIGN KEY (userRef_col) REFERENCES myschema.user_tbl(_hash_col)`
+        );
+      });
+
+      it("should generate correct foreign key constraints for multiple references", () => {
+        const refCols = ["userRef", "groupRef"];
+        const result = dbStatements.foreignKeys(refCols);
+        expect(result).toBe(
+          `CONSTRAINT FK_userRef_col FOREIGN KEY (userRef_col) REFERENCES myschema.user_tbl(_hash_col), ` +
+          `CONSTRAINT FK_groupRef_col FOREIGN KEY (groupRef_col) REFERENCES myschema.group_tbl(_hash_col)`
+        );
+      });
+
+      it("should return empty string for empty input", () => {
+        expect(dbStatements.foreignKeys([])).toBe("");
+      });
+    });
 
     it("addFix should add suffix if not present", () => {
         expect(dbStatements.addFix("foo", "_col")).toBe("foo_col");
@@ -196,5 +222,80 @@ describe("DbStatements", () => {
             expect(sql).toContain("VALUES");
         }
     });
+
+    it("should generate correct getContentType SQL", async () => {
+      // Assuming dbProcedures.contentType is a string like 'getContentTypeProc'
+      // and _mainSchema is 'main' by default
+      const tableName = "mytable";
+      const schema = "myschema";
+      // We need to get the value of dbProcedures.contentType
+      // Since dbProcedures is imported dynamically, we access it here
+      const { dbProcedures } = await import("../src/db-procedures.ts");
+      const expected = `EXEC main.${dbProcedures.contentType} @schemaName = '${schema}', @tableKey = '${tableName}'`;
+      expect(dbStatements.getContentType(tableName, schema)).toBe(expected);
+    });
+
+    it("should generate correct tableReferences SQL for single reference", () => {
+      const refCol = "userRef";
+      const result = dbStatements.tableReferences([refCol]);
+      expect(result).toBe(
+        `FOREIGN KEY (userRef) REFERENCES user (${dbStatements.addColumnSuffix(dbStatements.connectingColumn)})`
+      );
+    });
+
+    it("should generate correct tableReferences SQL for multiple references", () => {
+      const refCols = ["userRef", "groupRef"];
+      const result = dbStatements.tableReferences(refCols);
+      expect(result).toBe(
+        `FOREIGN KEY (userRef) REFERENCES user (${dbStatements.addColumnSuffix(dbStatements.connectingColumn)}), ` +
+        `FOREIGN KEY (groupRef) REFERENCES group (${dbStatements.addColumnSuffix(dbStatements.connectingColumn)})`
+      );
+    });
+
+    it("should return empty string for tableReferences with empty input", () => {
+      expect(dbStatements.tableReferences([])).toBe("");
+    });
+
+    it("should generate correct selection SQL", () => {
+      const sql = dbStatements.selection("mytable", "foo_col,bar_col", "foo_col = 1");
+      expect(sql).toBe("SELECT foo_col,bar_col FROM mytable WHERE foo_col = 1");
+    });
+
+    it("should generate correct alterTable SQL statements", () => {
+      const addedColumns: ColumnCfg[] = [
+        { key: "foo", type: "string", titleLong: "Foo Column", titleShort: "Foo" },
+        { key: "bar", type: "number", titleLong: "Bar Column", titleShort: "Bar" }
+      ];
+      
+      const stmts = dbStatements.alterTable("mytable", addedColumns);
+      const result1 = "ALTER TABLE [myschema].[mytable_tbl] ADD foo_col NVARCHAR(MAX);";
+      const result2 = "ALTER TABLE [myschema].[mytable_tbl] ADD bar_col FLOAT;";
+      expect(stmts[0]).toEqual(result1);
+      expect(stmts[1]).toEqual(result2);
+    });
+
+    describe("tableReferences", () => {
+      it("should generate correct SQL for single reference", () => {
+      const refCol = "userRef";
+      const result = dbStatements.tableReferences([refCol]);
+      expect(result).toBe(
+        `FOREIGN KEY (userRef) REFERENCES user (${dbStatements.addColumnSuffix(dbStatements.connectingColumn)})`
+      );
+      });
+
+      it("should generate correct SQL for multiple references", () => {
+      const refCols = ["userRef", "groupRef"];
+      const result = dbStatements.tableReferences(refCols);
+      expect(result).toBe(
+        `FOREIGN KEY (userRef) REFERENCES user (${dbStatements.addColumnSuffix(dbStatements.connectingColumn)}), ` +
+        `FOREIGN KEY (groupRef) REFERENCES group (${dbStatements.addColumnSuffix(dbStatements.connectingColumn)})`
+      );
+      });
+
+      it("should return empty string for empty input", () => {
+      expect(dbStatements.tableReferences([])).toBe("");
+      });
+    });
+
 
 });

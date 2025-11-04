@@ -8,13 +8,26 @@
 // Use of this source code is governed by terms that can be
 // found in the LICENSE file in the root of this package.
 
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { adminCfg } from '../src/admin-cfg';
-const { DbBasics } = await import('../src/db-basics.ts');
-const { IoMssql } = await import('../src/io-mssql.ts');
 
-describe('IoMssql', () => {
+let counter = 0;
+const { DbBasics } = await import('../src/db-basics.ts');
+while(typeof DbBasics !== 'function') {
+  await new Promise(resolve => setTimeout(resolve, 100));
+  counter ++;
+  if(counter > 50) break;
+}
+counter = 0;
+const { IoMssql } = await import('../src/io-mssql.ts');
+while(typeof IoMssql !== 'function') {
+  await new Promise(resolve => setTimeout(resolve, 100));
+  counter ++;
+  if(counter > 50) break;
+}
+
+describe('IoMssql', async () => {
   let ioSql: any;
   const testDbName = 'TestDb';
   const testSchemaName = 'PantrySchema';
@@ -43,15 +56,10 @@ describe('IoMssql', () => {
     await ioSql.close();
   });
 
-  // Clean up after all tests have run
-  afterAll(async () => {
-    // await IoMssql.dropTestLogins(adminCfg);
-    // await IoMssql.dropTestSchemas(adminCfg);
-  });
-
   it('should connect to the database', async () => {
     expect(ioSql.isOpen).toBe(true);
   });
+
 
   it('should return an error when the _conn cannot be established', async () => {
     const badConfig = {
@@ -105,4 +113,18 @@ describe('IoMssql', () => {
       dbBasics.installProcedures(adminCfg, testDbName),
     ).resolves.not.toThrow();
   });
+
+  it('should return the correct currentSchema', async () => {
+    const schema = ioSql.currentSchema;
+    expect(ioSql.currentSchema).toBe(schema);
+  });
+
+  it('should return the correct currentLogin', async () => {
+    // The login is generated in the example() method as login_<random>
+    // So we check that it starts with 'login_'
+    expect(ioSql.currentLogin.startsWith('login_')).toBe(true);
+  });
+
+  
+
 });

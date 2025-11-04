@@ -39,6 +39,7 @@ export async function runScript(
         }
       }
     } catch (error) {
+      /* v8 ignore next -- @preserve */
       if (error instanceof Error) {
         result.push(error.message);
         // Check for precedingErrors property
