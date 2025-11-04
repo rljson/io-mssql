@@ -20,11 +20,11 @@
   ],
   "type": "module",
   "scripts": {
-    "build": "pnpx vite build && tsc && node scripts/copy-readme-to-dist.js",
-    "test": "pnpm installConformanceTests && pnpx vitest run --coverage && pnpm run lint",
-    "prebuild": "npm run test",
-    "prepublishOnly": "npm run build",
-    "lint": "pnpx eslint",
+    "build": "pnpm vite build && tsc && node scripts/copy-readme-to-dist.js",
+    "test": "pnpm installConformanceTests && pnpm vitest --coverage && pnpm run lint",
+    "prebuild": "pnpm run test",
+    "prepublishOnly": "pnpm run build",
+    "lint": "pnpm eslint",
     "updateGoldens": "cross-env UPDATE_GOLDENS=true pnpm test",
     "installConformanceTests": "node scripts/install-conformance-tests.js"
   },

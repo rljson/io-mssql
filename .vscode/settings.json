@@ -2,9 +2,11 @@
     "cSpell.words": [
         "Cfgs",
         "datareader",
+        "Goldens",
         "NVARCHAR",
         "recordset",
         "rljson",
+        "rmhsh",
         "sqltable",
         "testdb",
         "testschema"

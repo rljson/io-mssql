@@ -3,25 +3,10 @@
 
 import { Io, IoTestSetup } from '@rljson/io';
 import { adminCfg } from '../src/admin-cfg';
-let counter = 0;
-const { DbBasics } = await  import( '../src/db-basics');
-while (typeof DbBasics !== 'function') {
-  await new Promise(resolve => setTimeout(resolve, 150));
-  counter ++;
-  if(counter > 50){
-    throw new Error('Timeout waiting for DbBasics to load');
-  }
-}
-const { IoMssql } = await import('../src/io-mssql');
-while (typeof IoMssql !== 'function') {
-  const classType = typeof IoMssql;
-  await new Promise(resolve => setTimeout(resolve, 150));
-  console.log('Waiting for IoMssql to load...');
-  counter ++;
-  if(counter > 50){
-    throw new Error(`Timeout waiting for IoMssql to load: ${classType}`);
-  }
-}
+import { DbBasics } from '../src/db-basics.ts';
+import { IoMssql } from '../src/io-mssql.ts';
+
+
 
 // ..............................................................................
 class MyIoTestSetup implements IoTestSetup {
