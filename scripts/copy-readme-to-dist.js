@@ -40,12 +40,12 @@ const copyReadmeFiles = async () => {
 };
 
 const main = async () => {
-  const srcExample = join(__dirname, '..', 'src', 'example.ts');
-  const destExampleDir = join(__dirname, '..', 'dist', 'src');
-  const destExample = join(destExampleDir, 'example.ts');
+  // const srcExample = join(__dirname, '..', 'src', 'example.ts');
+  // const destExampleDir = join(__dirname, '..', 'dist', 'src');
+  // const destExample = join(destExampleDir, 'example.ts');
 
-  await createDir(destExampleDir);
-  await copyFile(srcExample, destExample);
+  // await createDir(destExampleDir);
+  // await copyFile(srcExample, destExample);
   await copyReadmeFiles();
 
   console.log('Files copied successfully.');
