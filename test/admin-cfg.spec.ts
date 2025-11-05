@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { adminCfg } from '../src/admin-cfg';
+import { adminCfg } from '../src/admin-cfg.ts';
 
 describe('adminCfg', () => {
   it('should have the correct user', () => {
@@ -30,10 +30,11 @@ describe('adminCfg', () => {
   });
 
   it('should have encrypt set to false in options', () => {
-    expect(adminCfg.options.encrypt).toBe(false);
+    expect(adminCfg.options).toBeDefined();
+    expect(adminCfg.options && adminCfg.options.encrypt).toBe(false);
   });
 
   it('should have trustServerCertificate set to true in options', () => {
-    expect(adminCfg.options.trustServerCertificate).toBe(true);
+    expect(adminCfg.options && adminCfg.options.trustServerCertificate).toBe(true);
   });
 });

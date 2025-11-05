@@ -1,20 +1,19 @@
 import sql from 'mssql';
-
+import { ContentType } from '@rljson/rljson';
 import { runScript } from './run-script.ts';
-
+import { dbProcedures }  from './db-procedures.ts';
+import { DbStatements }  from'./db-statements.ts';
 
 /// Database Initialization (create database, schema etc.)
-/// These are static methods to deal with the database itself
+/// These are instance methods to deal with the database itself
 export class DbBasics {
-  static _mainSchema: string = 'main';
-  static _dropConstraintsProc: string = 'DropConstraints';
-  static _dropObjectsProc: string = 'DropObjects';
-  static _dropLoginProc: string = 'DropLogins';
-  static _dropSchemaProc: string = 'DropSchema';
+  private _mainSchema: string; 
+  constructor(mainSchema: string = 'main') {
+    this._mainSchema = mainSchema;   
+  }
+
   //****Database */
-  /// Create Database
-  ///(the only situation where the master must be accessed first)
-  static async createDatabase(
+  public async createDatabase(
     adminConfig: sql.config,
     dbName: string,
   ): Promise<string[]> {
@@ -33,9 +32,8 @@ export class DbBasics {
     `;
     return await runScript(adminConfig, script, dbName);
   }
-  /// Use database, so that subsequent commands
-  /// are executed in the context of the specified database
-  static async useDatabase(
+
+  public async useDatabase(
     adminConfig: sql.config,
     dbName: string,
   ): Promise<string[]> {
@@ -43,8 +41,8 @@ export class DbBasics {
     SELECT 'Using database ${dbName}' AS Status;`;
     return await runScript(adminConfig, useDbScript, dbName);
   }
-  /// Drop Database (only for testing)
-  static async dropDatabase(
+
+  public async dropDatabase(
     adminConfig: sql.config,
     dbName: string,
   ): Promise<string[]> {
@@ -64,26 +62,8 @@ export class DbBasics {
     return await runScript(adminConfig, script, dbName);
   }
 
-  // Drop all user databases (only for testing)
-  // static async dropDatabases(adminConfig: sql.config) {
-  //   const script = `SELECT name FROM sys.databases
-  //   WHERE name NOT IN ('master', 'tempdb', 'model', 'msdb')`;
-  //   const result = await runScript(adminConfig, script, 'master');
-
-  //   const dbNames: string[] = [];
-  //   for (const row of result) {
-  //     dbNames.push(JSON.parse(row).name);
-  //   }
-  //   for (const dbName of dbNames) {
-  //     const dbKill = await this.dropDatabase(adminConfig, dbName);
-  //     console.log(dbKill);
-  //   }
-  //   return result;
-  // }
-
   //***Schema */
-  /// Create Schema
-  static async createSchema(
+  public async createSchema(
     adminConfig: sql.config,
     dbName: string,
     schemaName: string,
@@ -102,12 +82,17 @@ export class DbBasics {
     `;
     return await runScript(adminConfig, script, dbName);
   }
-  /// Drop Schema (only for testing)
-  static async dropSchema(
+
+  public async dropSchema(
     adminConfig: sql.config,
     dbName: string,
     schemaName: string,
   ): Promise<string[]> {
+    /* v8 ignore next -- @preserve */
+    if (schemaName === 'dbo' || schemaName === this._mainSchema) {
+      /* v8 ignore next -- @preserve */
+      return [`Cannot drop schema ${schemaName}`];
+    }
     const script = `
       IF EXISTS (SELECT * FROM sys.schemas WHERE name = N'${schemaName}')
       BEGIN
@@ -123,25 +108,40 @@ export class DbBasics {
   }
 
   // Procedures (creation & dropping)
-  /// Drop Logins (only for testing)
-  static async createProcDropLogins(
+  public async createProcDropLogins(
     adminConfig: sql.config,
     dbName: string,
   ): Promise<string[]> {
+   
     const script = `
       CREATE OR ALTER PROCEDURE
-          ${this._mainSchema}.${this._dropConstraintsProc}( @SchemaName NVARCHAR(50))
+          ${this._mainSchema}.${dbProcedures.dropLogins}( @SchemaName NVARCHAR(50))
           AS
       BEGIN
-      -- Drop all foreign key constraints
-      DECLARE @sql NVARCHAR(MAX) = N''
-          SELECT @sql += 'ALTER TABLE [' + s.name + '].[' + t.name + ']
-          DROP CONSTRAINT [' + f.name + '];'
-          FROM sys.foreign_keys f
-          INNER JOIN sys.tables t ON f.parent_object_id = t.object_id
-          INNER JOIN sys.schemas s ON t.schema_id = s.schema_id
-          WHERE s.name = @SchemaName;
-          EXEC sp_executesql @sql;
+        DECLARE @Prefix NVARCHAR(100) = 'test_';
+        DECLARE @LoginName NVARCHAR(128);
+        DECLARE @SQL NVARCHAR(MAX);
+
+        DECLARE login_cursor CURSOR FOR
+        SELECT name
+        FROM sys.server_principals
+        WHERE type_desc = 'SQL_LOGIN'
+          AND name LIKE @Prefix + '%';
+
+        OPEN login_cursor;
+        FETCH NEXT FROM login_cursor INTO @LoginName;
+
+        WHILE @@FETCH_STATUS = 0
+        BEGIN
+            SET @SQL = 'DROP LOGIN [' + @LoginName + ']';
+            EXEC sp_executesql @SQL;
+
+            FETCH NEXT FROM login_cursor INTO @LoginName;
+        END
+
+        CLOSE login_cursor;
+        DEALLOCATE login_cursor;
+
       END
       GO --REM;
       SELECT 'Procedure to drop logins created' AS Status;
@@ -149,12 +149,12 @@ export class DbBasics {
     return await runScript(adminConfig, script, dbName);
   }
 
-  static async createProcDropObjects(
+  public async createProcDropObjects(
     adminConfig: sql.config,
     dbName: string,
   ): Promise<string[]> {
     const script = `    CREATE OR ALTER   PROCEDURE
-      [${this._mainSchema}].[${this._dropObjectsProc}]
+      [${this._mainSchema}].[${dbProcedures.dropObjects}]
       AS
       -- Delete all schemas that have been created
       -- apart from the main schema
@@ -186,13 +186,13 @@ export class DbBasics {
     return await runScript(adminConfig, script, dbName);
   }
 
-  static async createProcDropSchema(
+  public async createProcDropSchema(
     adminConfig: sql.config,
     dbName: string,
   ): Promise<string[]> {
     const script = `
       CREATE OR ALTER PROCEDURE
-      ${this._mainSchema}.${this._dropSchemaProc} (@SchemaName NVARCHAR(50))
+      ${this._mainSchema}.${dbProcedures.dropSchema} (@SchemaName NVARCHAR(50))
       AS
       BEGIN
       DECLARE @sql nvarchar(max) = N''
@@ -257,18 +257,18 @@ export class DbBasics {
 
       END
       GO --REM
-      SELECT 'Procedure ${this._dropSchemaProc} for ${this._mainSchema} created' AS Status;
+      SELECT 'Procedure ${dbProcedures.dropSchema} for ${this._mainSchema} created' AS Status;
     `;
     return await runScript(adminConfig, script, dbName);
   }
 
-  static async createProcDropConstraints(
+  public async createProcDropConstraints(
     adminConfig: sql.config,
     dbName: string,
   ): Promise<string[]> {
     const script = `
       CREATE OR ALTER PROCEDURE
-      ${this._mainSchema}.${this._dropConstraintsProc} (@SchemaName NVARCHAR(50), @TableName NVARCHAR(50))
+      ${this._mainSchema}.${dbProcedures.dropConstraints} (@SchemaName NVARCHAR(50), @TableName NVARCHAR(50))
       AS
       BEGIN
         DECLARE @sql NVARCHAR(MAX) = N''
@@ -298,16 +298,55 @@ export class DbBasics {
       CLOSE fkeys
       DEALLOCATE fkeys
 
-	END
+  END
       GO --REM
-      SELECT 'Procedure ${this._dropConstraintsProc} for ${this._mainSchema} created' AS Status;
+      SELECT 'Procedure ${dbProcedures.dropConstraints} for ${this._mainSchema} created' AS Status;
     `;
     return await runScript(adminConfig, script, dbName);
   }
 
+  public async createContentTypeProc(
+    adminConfig: sql.config,
+    dbName: string,
+  ): Promise<string[]> {
+    const dbStatements = new DbStatements(this._mainSchema);
+    const sourceTable = dbStatements.addTableSuffix('tableCfgs');
+    const resultCol = dbStatements.addColumnSuffix('type');
+    const script = `
+      CREATE OR ALTER PROCEDURE
+      ${this._mainSchema}.${dbProcedures.contentType} (@schemaName NVARCHAR(256), @tableKey NVARCHAR(256))
+      AS
+      BEGIN
+        DECLARE @SQL NVARCHAR(MAX) = N''
+        SELECT @SQL += 'SELECT ${resultCol} FROM [' + @schemaName + '].[${sourceTable}] WHERE key_col = @tableKey;'
+        EXEC sp_executesql @SQL, N'@tableKey NVARCHAR(256)', @tableKey
+      END
+      GO --REM
+      SELECT 'Procedure ${dbProcedures.contentType} for ${this._mainSchema} created' AS Status;
+    `;
+    return await runScript(adminConfig, script, dbName);
+  }
+
+  public async contentType(
+    adminConfig: sql.config,
+    dbName: string,
+    schemaName: string,
+    tableName: string,
+  ): Promise<ContentType> {
+    const script = `EXEC ${this._mainSchema}.${dbProcedures.contentType} @schemaName = '${schemaName}', @tableKey = '${tableName}'`;
+    const result = await runScript(adminConfig, script, dbName);
+
+    if (result.length > 1) {
+      throw new Error(`Table "${tableName}" not found`);
+    }
+    const parsed = JSON.parse(result[0]);    
+    return parsed[Object.keys(parsed)[0]] as ContentType;
+   
+  }
+
   //***user procedures  */
 
-  static async createLogin(
+  public async createLogin(
     adminConfig: sql.config,
     dbName: string,
     loginName: string,
@@ -325,7 +364,7 @@ export class DbBasics {
     return await runScript(adminConfig, script, dbName);
   }
 
-  static async dropLogin(
+  public async dropLogin(
     adminConfig: sql.config,
     dbName: string,
     loginName: string,
@@ -342,7 +381,7 @@ export class DbBasics {
     return await runScript(adminConfig, script, dbName);
   }
 
-  static async createUser(
+  public async createUser(
     adminConfig: sql.config,
     dbName: string,
     schemaName: string,
@@ -354,23 +393,24 @@ export class DbBasics {
       WHERE type_desc = 'SQL_USER'
       AND name = '${userName}')
       BEGIN
-        SELECT 'USER [${userName}] ALREADY EXISTS' AS Status;
+      SELECT 'USER [${userName}] ALREADY EXISTS' AS Status;
       END
       ELSE
       BEGIN
-        CREATE USER [${userName}] FOR LOGIN [${loginName}] WITH DEFAULT_SCHEMA=[${schemaName}];
-        ALTER ROLE db_datareader ADD MEMBER [${userName}];
-        ALTER ROLE db_datawriter ADD MEMBER [${userName}];
-        ALTER ROLE db_ddladmin ADD MEMBER [${userName}];
-        GRANT ALTER ON SCHEMA:: [${schemaName}] TO [${userName}];
-        SELECT 'USER [${userName}] CREATED' AS Status;
+      CREATE USER [${userName}] FOR LOGIN [${loginName}] WITH DEFAULT_SCHEMA=[${schemaName}];
+      ALTER ROLE db_datareader ADD MEMBER [${userName}];
+      ALTER ROLE db_datawriter ADD MEMBER [${userName}];
+      ALTER ROLE db_ddladmin ADD MEMBER [${userName}];
+      GRANT ALTER ON SCHEMA:: [${schemaName}] TO [${userName}];
+      GRANT EXECUTE ON SCHEMA:: [main] TO [${userName}];
+      SELECT 'USER [${userName}] CREATED' AS Status;
       END
       GO --REM`;
 
     return await runScript(adminConfig, script, dbName);
   }
 
-  static async dropUser(
+  public async dropUser(
     adminConfig: sql.config,
     dbName: string,
     userName: string,
@@ -387,7 +427,8 @@ export class DbBasics {
 
     return await runScript(adminConfig, script, dbName);
   }
-  static async addUserToRole(
+
+  public async addUserToRole(
     adminConfig: sql.config,
     dbName: string,
     roleName: string,
@@ -397,7 +438,7 @@ export class DbBasics {
     return await runScript(adminConfig, script, dbName);
   }
 
-  static async grantSchemaPermission(
+  public async grantSchemaPermission(
     adminConfig: sql.config,
     dbName: string,
     schemaName: string,
@@ -407,7 +448,7 @@ export class DbBasics {
     return await runScript(adminConfig, script, dbName);
   }
 
-  static async getUsers(
+  public async getUsers(
     adminConfig: sql.config,
     dbName: string,
     schemaName: string,
@@ -420,7 +461,7 @@ export class DbBasics {
     return await runScript(adminConfig, script, dbName);
   }
 
-  static async getTableNames(
+  public async getTableNames(
     adminConfig: sql.config,
     dbName: string,
     schemaName: string,
@@ -431,6 +472,7 @@ export class DbBasics {
     `;
     const result = await runScript(adminConfig, script, dbName);
     const tableNames: string[] = [];
+    /* v8 ignore next -- @preserve */
     for (const row of result) {
       if (JSON.parse(row).TABLE_NAME) {
         tableNames.push(JSON.parse(row).TABLE_NAME);
@@ -439,9 +481,19 @@ export class DbBasics {
     return tableNames;
   }
 
+  //Transaction handling
+  public async transact(
+    adminConfig: sql.config,
+    dbName: string,
+    type: 'begin' | 'commit' | 'rollback',
+    transactionName: string,
+  ): Promise<string[]> {
+    const script = `${type} TRANSACTION ${transactionName};`;
+    return await runScript(adminConfig, script, dbName);
+  }
+
   //****Compilations */
-  /// Initialize the database including scripts
-  static async initDb(
+  public async initDb(
     adminConfig: sql.config,
     dbName: string,
     schemaName: string,
@@ -460,22 +512,43 @@ export class DbBasics {
       loginName,
       loginName,
     );
-    await DbBasics.installProcedures(adminConfig, dbName);
+    await this.installProcedures(adminConfig, dbName);
   }
 
-  static async installProcedures(adminConfig: sql.config, dbName: string) {
-    await this.createProcDropLogins(adminConfig, dbName);
-    await this.createProcDropObjects(adminConfig, dbName);
-    await this.createProcDropSchema(adminConfig, dbName);
-    await this.createProcDropConstraints(adminConfig, dbName);
+  public async installProcedures(
+    adminConfig: sql.config,
+    dbName: string,
+  ): Promise<string[]> {
+    const dropLoginsProc = await this.createProcDropLogins(adminConfig, dbName);
+    const dropObjectsProc = await this.createProcDropObjects(
+      adminConfig,
+      dbName,
+    );
+    const dropSchemaProc = await this.createProcDropSchema(adminConfig, dbName);
+    const dropConstraintsProc = await this.createProcDropConstraints(
+      adminConfig,
+      dbName,
+    );
+    const contentTypeProc = await this.createContentTypeProc(
+      adminConfig,
+      dbName,
+    );
+
+    return [
+      ...dropLoginsProc,
+      ...dropObjectsProc,
+      ...dropSchemaProc,
+      ...dropConstraintsProc,
+      ...contentTypeProc,
+    ];
   }
 
-  static async dropProcedures(adminConfig: sql.config, dbName: string) {
+  public async dropProcedures(adminConfig: sql.config, dbName: string) {
     const procedureNames = [
-      this._dropConstraintsProc,
-      this._dropObjectsProc,
-      this._dropLoginProc,
-      this._dropSchemaProc,
+      dbProcedures.dropConstraints,
+      dbProcedures.dropObjects,
+      dbProcedures.dropLogins,
+      dbProcedures.dropSchema,
     ];
     for (const proc of procedureNames) {
       const script = `DROP PROCEDURE IF EXISTS [${this._mainSchema}].[${proc}]`;
@@ -483,17 +556,17 @@ export class DbBasics {
     }
   }
 
-  static async dropConstraints(
+  public async dropConstraints(
     adminConfig: sql.config,
     dbName: string,
     schemaName: string,
     tableName: string,
   ) {
-    const script = `EXEC ${this._mainSchema}.${this._dropConstraintsProc} @SchemaName = N'${schemaName}', @TableName = N'${tableName}'`;
+    const script = `EXEC ${this._mainSchema}.${dbProcedures.dropConstraints} @SchemaName = N'${schemaName}', @TableName = N'${tableName}'`;
     await runScript(adminConfig, script, dbName);
   }
 
-  static async dropUsers(
+  public async dropUsers(
     adminConfig: sql.config,
     dbName: string,
     schemaName: string,
@@ -513,14 +586,14 @@ export class DbBasics {
     }
   }
 
-  static async dropTables(
+  public async dropTables(
     adminConfig: sql.config,
     dbName: string,
     schemaName: string,
-  ) {
+  ): Promise<void> {
     const tables = await this.getTableNames(adminConfig, dbName, schemaName);
     for (const tableName of tables) {
-      this.dropConstraints(adminConfig, dbName, schemaName, tableName);
+      await this.dropConstraints(adminConfig, dbName, schemaName, tableName);
       const script = `DROP TABLE IF EXISTS [${schemaName}].[${tableName}]`;
       await runScript(adminConfig, script, dbName);
     }

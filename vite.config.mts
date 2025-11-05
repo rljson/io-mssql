@@ -23,9 +23,12 @@ export default defineConfig({
     rollupOptions: {
       external: [
         '@rljson/rljson',
+        '@rljson/validate',
         '@rljson/json',
         '@rljson/hash',
-        // Add all peer depencies from package.json here
+        '@rljson/is-ready',
+        'mssql',
+        // Add all peer dependencies from package.json here
       ],
       output: {
         globals: {},

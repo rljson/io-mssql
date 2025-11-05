@@ -1,26 +1,29 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { adminCfg } from '../src/admin-cfg';
-import { DbBasics } from '../src/db-basics';
-import { runScript } from '../src/run-script';
+import { adminCfg } from '../src/admin-cfg.ts';
+import { DbBasics } from '../src/db-basics.ts';
+import { runScript } from '../src/run-script.ts';
 
 
+describe('runScript', () => {
 const testDb = 'TestDbForRunScript';
+const dbBasics = new DbBasics();
 
 beforeAll(async () => {
-  await DbBasics.createDatabase(adminCfg, testDb);
+   while (typeof DbBasics !== 'function') {
+      await new Promise(resolve => setTimeout(resolve, 100));
+    }
+  await dbBasics.createDatabase(adminCfg, testDb);
 });
 
 afterAll(async () => {
-  await DbBasics.dropDatabase(adminCfg, testDb);
+  await dbBasics.dropDatabase(adminCfg, testDb);
 });
 
-describe('runScript', () => {
   it('should connect to SQL Server and execute a single batch', async () => {
     const script = 'SELECT 1 AS RESULT';
     const result = await runScript(adminCfg, script, testDb);
     const json = JSON.parse(result[0] as string);
-    //const value = json[0][0].RESULT;
     expect(json.RESULT).toBe(1);
   });
 
@@ -42,7 +45,7 @@ describe('runScript', () => {
 
   it('should handle SQL syntax errors and return error messages', async () => {
     const script = 'SELECT * FROM NonExistentTable';
-    const result = await runScript(adminCfg, script, testDb);
+    const result = await runScript(adminCfg, script, testDb);   
     expect(result.length).toBeGreaterThan(0);
     expect(result[0]).toMatch(/invalid|could not find|does not exist|error/i);
   });
