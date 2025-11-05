@@ -6,8 +6,6 @@ import { adminCfg } from '../src/admin-cfg.ts';
 import { DbBasics } from '../src/db-basics.ts';
 import { IoMssql } from '../src/io-mssql.ts';
 
-
-
 // ..............................................................................
 class MyIoTestSetup implements IoTestSetup {
   masterMind: any;
@@ -38,8 +36,6 @@ class MyIoTestSetup implements IoTestSetup {
   }
 
   async afterAll(): Promise<void> {
-    // No cleanup needed after all tests
-    // await this.masterMind.close();
     await this.dbBasics.dropDatabase(adminCfg, this.dbName);
   }
   get io(): Io {

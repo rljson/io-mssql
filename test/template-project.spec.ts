@@ -8,10 +8,7 @@ import { describe, expect, it } from 'vitest';
 import { TemplateProject } from '../src/template-project.ts';
 
 describe('TemplateProject', () => {
-  it('should validate a template', async () => {
-    while (typeof TemplateProject !== 'function') {
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
+  it('should validate a template', async () => {   
     const templateProject = TemplateProject.example;
     expect(templateProject).toBeDefined();
   });
