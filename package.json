@@ -21,7 +21,7 @@
   "type": "module",
   "scripts": {
     "build": "pnpm vite build && tsc && node scripts/copy-readme-to-dist.js",
-    "test": "pnpm installConformanceTests && pnpm vitest --coverage && pnpm run lint",
+    "test": "pnpm installConformanceTests && pnpm vitest --coverage --no-file-parallelism --run  && pnpm run lint",
     "prebuild": "pnpm run test",
     "prepublishOnly": "pnpm run build",
     "lint": "pnpm eslint",
@@ -43,19 +43,17 @@
     "read-pkg": "^9.0.1",
     "typescript": "~5.9.3",
     "typescript-eslint": "^8.46.3",
-    "vite": "^7.1.12",
-    "vite-node": "^3.2.4",
+    "vite": "^7.2.0",
     "vite-plugin-dts": "^4.5.4",
     "vite-tsconfig-paths": "^5.1.4",
-    "vitest": "^4.0.7",
-    "vitest-dom": "^0.1.1"
+    "vitest": "^4.0.7"
   },
   "dependencies": {
     "@rljson/hash": "^0.0.17",
-    "@rljson/io": "^0.0.52",
+    "@rljson/io": "^0.0.53",
     "@rljson/is-ready": "^0.0.17",
-    "@rljson/json": "^0.0.22",
-    "@rljson/rljson": "^0.0.66",
+    "@rljson/json": "^0.0.23",
+    "@rljson/rljson": "^0.0.67",
     "mssql": "^12.1.0"
   },
   "pnpm": {
