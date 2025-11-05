@@ -1,23 +1,23 @@
 // @license
 // Copyright (c) 2025 Rljson
+
 import { Io, IoTestSetup } from '@rljson/io';
-
-import { adminCfg } from '../src/admin-cfg';
-import { DbBasics } from '../src/db-basics';
-import { IoMssql } from '../src/io-mssql';
-
+import { adminCfg } from '../src/admin-cfg.ts';
+import { DbBasics } from '../src/db-basics.ts';
+import { IoMssql } from '../src/io-mssql.ts';
 
 // ..............................................................................
 class MyIoTestSetup implements IoTestSetup {
-  masterMind: IoMssql;
-  mio: IoMssql;
+  masterMind: any;
+  mio: any;
   dbName = 'TestDb-For-Io-Conformance';
+  dbBasics = new DbBasics();
 
   async beforeAll(): Promise<void> {
-    await DbBasics.createDatabase(adminCfg, this.dbName);
-    await DbBasics.createSchema(adminCfg, this.dbName, 'main');
-    await DbBasics.installProcedures(adminCfg, this.dbName);
-    // No setup needed before all tests
+    await this.dbBasics.createDatabase(adminCfg, this.dbName);
+    await this.dbBasics.createSchema(adminCfg, this.dbName, 'main');
+    await  this.dbBasics.installProcedures(adminCfg, this.dbName);
+    
     this.masterMind = new IoMssql(adminCfg, 'main');
   }
 
@@ -28,21 +28,15 @@ class MyIoTestSetup implements IoTestSetup {
   }
 
   async afterEach(): Promise<void> {
-    // Clean up environment after each test
-    const currentSchema = this.mio.currentSchema;
-    await DbBasics.dropTables(adminCfg, this.dbName, currentSchema);
-    await DbBasics.dropSchema(adminCfg, this.dbName, currentSchema);
     const currentLogin = this.mio.currentLogin;
-    await this.io.close().then(async () => {
-      await DbBasics.dropLogin(adminCfg, this.dbName, currentLogin);
+    await this.mio.close().then(async () => {
+      await this.dbBasics.dropLogin(adminCfg, this.dbName, currentLogin);
     });
-    await DbBasics.dropDatabase(adminCfg, this.dbName);
     this._io = null;
   }
 
   async afterAll(): Promise<void> {
-    // No cleanup needed after all tests
-    await this.masterMind.close();
+    await this.dbBasics.dropDatabase(adminCfg, this.dbName);
   }
   get io(): Io {
     if (!this._io) {
@@ -51,7 +45,7 @@ class MyIoTestSetup implements IoTestSetup {
     return this._io;
   }
 
-  private _io: Io | null = null;
+  protected _io: Io | null = null;
 }
 
 // .............................................................................

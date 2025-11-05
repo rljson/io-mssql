@@ -6,10 +6,11 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { shouldUpdateGoldens } from './goldens';
+import { shouldUpdateGoldens } from './goldens.ts';
 
-describe('shouldUpdateGoldens', () => {
-  it('should be true when process.argv contains --update-goldens', () => {
+describe('shouldUpdateGoldens', async () => {
+  it('should be true when process.argv contains --update-goldens', async () => {    
+
     const backup = process.env['UPDATE_GOLDENS'];
     (process.env as any).UPDATE_GOLDENS = true;
     expect(shouldUpdateGoldens()).toBe(true);

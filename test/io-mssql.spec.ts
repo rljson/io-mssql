@@ -1,10 +1,3 @@
-import { afterAll, afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
-
-import { adminCfg } from '../src/admin-cfg';
-import { DbBasics } from '../src/db-basics';
-import { IoMssql } from '../src/io-mssql'; // Adjust the path as needed
-
-
 // @license
 // Copyright (c) 2025 Rljson
 //
@@ -15,18 +8,25 @@ import { IoMssql } from '../src/io-mssql'; // Adjust the path as needed
 // Use of this source code is governed by terms that can be
 // found in the LICENSE file in the root of this package.
 
-describe('IoMssql', () => {
-  let ioSql: IoMssql;
+import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
+import { adminCfg } from '../src/admin-cfg.ts';
+import { DbBasics } from '../src/db-basics.ts';
+import { IoMssql } from '../src/io-mssql.ts';
+
+
+describe('IoMssql', async () => {
+  let ioSql: any;
   const testDbName = 'TestDb';
   const testSchemaName = 'PantrySchema';
+  const dbBasics = new DbBasics();
 
   beforeAll(async () => {
-    await DbBasics.dropDatabase(adminCfg, testDbName);
-    await DbBasics.createDatabase(adminCfg, testDbName);
-    await DbBasics.useDatabase(adminCfg, testDbName);
-    await DbBasics.createSchema(adminCfg, testDbName, testSchemaName);
-    await DbBasics.installProcedures(adminCfg, testDbName);
+    await dbBasics.dropDatabase(adminCfg, testDbName);
+    await dbBasics.createDatabase(adminCfg, testDbName);
+    await dbBasics.useDatabase(adminCfg, testDbName);
+    await dbBasics.createSchema(adminCfg, testDbName, testSchemaName);
+    await dbBasics.installProcedures(adminCfg, testDbName);
   });
 
   beforeEach(async () => {
@@ -44,15 +44,10 @@ describe('IoMssql', () => {
     await ioSql.close();
   });
 
-  // Clean up after all tests have run
-  afterAll(async () => {
-    // await IoMssql.dropTestLogins(adminCfg);
-    // await IoMssql.dropTestSchemas(adminCfg);
-  });
-
   it('should connect to the database', async () => {
     expect(ioSql.isOpen).toBe(true);
   });
+
 
   it('should return an error when the _conn cannot be established', async () => {
     const badConfig = {
@@ -103,7 +98,21 @@ describe('IoMssql', () => {
 
   it('should execute installScripts without throwing', async () => {
     await expect(
-      DbBasics.installProcedures(adminCfg, testDbName),
+      dbBasics.installProcedures(adminCfg, testDbName),
     ).resolves.not.toThrow();
   });
+
+  it('should return the correct currentSchema', async () => {
+    const schema = ioSql.currentSchema;
+    expect(ioSql.currentSchema).toBe(schema);
+  });
+
+  it('should return the correct currentLogin', async () => {
+    // The login is generated in the example() method as login_<random>
+    // So we check that it starts with 'login_'
+    expect(ioSql.currentLogin.startsWith('login_')).toBe(true);
+  });
+
+  
+
 });

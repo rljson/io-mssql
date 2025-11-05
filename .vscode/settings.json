@@ -535,9 +535,27 @@
     "yrqcs"
   ],
   "editor.codeLens": false,
-
-  "code-runner.executorMap": {
-    "typescript": "ts-node"
-  },
-  "code-runner.enableAppInsights": false
+  "dbcode.connections": [
+    {
+      "connectionId": "BvAuRg3OE32IgFKO6yaYd",
+      "name": "LocalTest",
+      "driver": "mssql",
+      "color": "#F33246",
+      "host": "localhost",
+      "port": 1433,
+      "ssl": false,
+      "driverOptions": {
+        "authType": "sql",
+        "instance": "LOCALTESTSERVER"
+      },
+      "username": "CDM-Login",
+      "password": "",
+      "savePassword": "secretStorage",
+      "database": "CDM-Test",
+      "readOnly": false,
+      "role": "development",
+      "connectionTimeout": 30,
+      "connectionType": "host"
+    }
+  ]
 }

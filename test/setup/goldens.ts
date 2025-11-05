@@ -33,7 +33,7 @@ export const defaultExpectGoldensOptions = (): ExpectGoldenOptions => {
 
 /**
  * Updates the golden file with the given content.
- * @param filexName - The golden file to compare with
+ * @param fileName - The golden file to compare with
  * @param expected - The expected golden content
  */
 export const expectGolden = (

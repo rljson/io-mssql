@@ -36,21 +36,23 @@ import {
 
 import { Io, IoTestSetup, IoTools } from '@rljson/io';
 
-import { testSetup } from './io-conformance.setup.ts';
+import { testSetup } from './io-conformance.setup';
 import { expectGolden, ExpectGoldenOptions } from './setup/goldens.ts';
 
 const ego: ExpectGoldenOptions = {
   npmUpdateGoldensEnabled: false,
 };
 
-export const runIoConformanceTests = () => {
+export const runIoConformanceTests = (
+  externalTestSetup?: () => IoTestSetup,
+) => {
   return describe('Io Conformance', async () => {
     let io: Io;
     let ioTools: IoTools;
     let setup: IoTestSetup;
 
     beforeAll(async () => {
-      setup = testSetup();
+      setup = externalTestSetup ? externalTestSetup() : testSetup();
       await setup.beforeAll();
     });
 
@@ -113,17 +115,37 @@ export const runIoConformanceTests = () => {
           isRoot: false,
           isShared: true,
           columns: [
-            { key: '_hash', type: 'string' },
-            { key: 'col0', type: 'string' },
+            {
+              key: '_hash',
+              type: 'string',
+              titleShort: '_hash',
+              titleLong: 'Hash',
+            },
+            {
+              key: 'col0',
+              type: 'string',
+              titleShort: 'col0',
+              titleLong: 'Col0',
+            },
           ],
         };
 
         const tableV1 = addColumnsToTableCfg(tableV0, [
-          { key: 'col1', type: 'string' },
+          {
+            key: 'col1',
+            type: 'string',
+            titleShort: 'col1',
+            titleLong: 'Col1',
+          },
         ]);
 
         const tableV2 = addColumnsToTableCfg(tableV1, [
-          { key: 'col2', type: 'string' },
+          {
+            key: 'col2',
+            type: 'string',
+            titleShort: 'col2',
+            titleLong: 'Col2',
+          },
         ]);
 
         await io.createOrExtendTable({ tableCfg: tableV0 });
@@ -131,7 +153,10 @@ export const runIoConformanceTests = () => {
         await io.createOrExtendTable({ tableCfg: tableV2 });
 
         // Check the tableCfgs
-        const actualTableCfgs = await ioTools.tableCfgs();
+        // Sort it in advance to have a stable order for the golden file
+        const actualTableCfgs = (await ioTools.tableCfgs()).sort((a, b) =>
+          (a as any)._hash.localeCompare(b._hash),
+        );
 
         await expectGolden('io-conformance/tableCfgs-1.json', ego).toBe(
           actualTableCfgs,
@@ -151,7 +176,7 @@ export const runIoConformanceTests = () => {
         }
 
         expect(message).toBe(
-          'Hash "wrongHash" does not match the newly calculated one "uX24nHRtwkXRsq8l46cNRZ". ' +
+          'Hash "wrongHash" does not match the newly calculated one "9jZWK-5WPpnlQHCWSPg80D". ' +
             'Please make sure that all systems are producing the same hashes.',
         );
       });
@@ -203,6 +228,8 @@ export const runIoConformanceTests = () => {
               {
                 key: 'x',
                 type: 'unknown' as any,
+                titleShort: 'x',
+                titleLong: 'X',
               },
             ],
           });
@@ -365,7 +392,7 @@ export const runIoConformanceTests = () => {
                 b: 5,
               },
             ],
-            _tableCfg: '_SmasX0fD_A_0sshe6lnTt',
+            _tableCfg: 'GUGis7DIUDWCLFUJQZwJQ1',
             _type: 'components',
           },
         };
@@ -373,9 +400,24 @@ export const runIoConformanceTests = () => {
 
         // Update the table by adding a new column
         const tableCfg2 = addColumnsToTableCfg(tableCfg, [
-          { key: 'keyA1', type: 'string' },
-          { key: 'keyA2', type: 'string' },
-          { key: 'keyB2', type: 'string' },
+          {
+            key: 'keyA1',
+            type: 'string',
+            titleShort: 'keyA1',
+            titleLong: 'Key A1',
+          },
+          {
+            key: 'keyA2',
+            type: 'string',
+            titleShort: 'keyA2',
+            titleLong: 'Key A2',
+          },
+          {
+            key: 'keyB2',
+            type: 'string',
+            titleShort: 'keyB2',
+            titleLong: 'Key B2',
+          },
         ]);
 
         await io.createOrExtendTable({ tableCfg: tableCfg2 });
@@ -421,7 +463,7 @@ export const runIoConformanceTests = () => {
                 keyB2: 'b2',
               },
             ],
-            _tableCfg: 'E1tCMshAuHRJg5Gz6M-Fqd',
+            _tableCfg: 'yKzxBoq_P6qkCSXiNpJttx',
             _type: 'components',
           },
         });
@@ -434,10 +476,30 @@ export const runIoConformanceTests = () => {
         const tableCfg: TableCfg = {
           ...exampleCfg,
           columns: [
-            { key: '_hash', type: 'string' },
-            { key: 'keyA1', type: 'string' },
-            { key: 'keyA2', type: 'string' },
-            { key: 'keyB2', type: 'string' },
+            {
+              key: '_hash',
+              type: 'string',
+              titleShort: '_hash',
+              titleLong: 'Hash',
+            },
+            {
+              key: 'keyA1',
+              type: 'string',
+              titleShort: 'keyA1',
+              titleLong: 'Key A1',
+            },
+            {
+              key: 'keyA2',
+              type: 'string',
+              titleShort: 'keyA2',
+              titleLong: 'Key A2',
+            },
+            {
+              key: 'keyB2',
+              type: 'string',
+              titleShort: 'keyB2',
+              titleLong: 'Key B2',
+            },
           ],
         };
 
@@ -498,13 +560,48 @@ export const runIoConformanceTests = () => {
         const tableCfg: TableCfg = {
           ...exampleCfg,
           columns: [
-            { key: '_hash', type: 'string' },
-            { key: 'string', type: 'string' },
-            { key: 'number', type: 'number' },
-            { key: 'null', type: 'string' },
-            { key: 'boolean', type: 'boolean' },
-            { key: 'array', type: 'jsonArray' },
-            { key: 'object', type: 'json' },
+            {
+              key: '_hash',
+              type: 'string',
+              titleShort: '_hash',
+              titleLong: 'Hash',
+            },
+            {
+              key: 'string',
+              type: 'string',
+              titleShort: 'string',
+              titleLong: 'String',
+            },
+            {
+              key: 'number',
+              type: 'number',
+              titleShort: 'number',
+              titleLong: 'Number',
+            },
+            {
+              key: 'null',
+              type: 'string',
+              titleShort: 'null',
+              titleLong: 'Null',
+            },
+            {
+              key: 'boolean',
+              type: 'boolean',
+              titleShort: 'boolean',
+              titleLong: 'Boolean',
+            },
+            {
+              key: 'array',
+              type: 'jsonArray',
+              titleShort: 'array',
+              titleLong: 'Array',
+            },
+            {
+              key: 'object',
+              type: 'json',
+              titleShort: 'object',
+              titleLong: 'Object',
+            },
           ],
         };
 
@@ -588,13 +685,48 @@ export const runIoConformanceTests = () => {
           const tableCfg: TableCfg = {
             ...exampleCfg,
             columns: [
-              { key: '_hash', type: 'string' },
-              { key: 'string', type: 'string' },
-              { key: 'number', type: 'number' },
-              { key: 'null', type: 'string' },
-              { key: 'boolean', type: 'boolean' },
-              { key: 'array', type: 'jsonArray' },
-              { key: 'object', type: 'json' },
+              {
+                key: '_hash',
+                type: 'string',
+                titleShort: '_hash',
+                titleLong: 'Hash',
+              },
+              {
+                key: 'string',
+                type: 'string',
+                titleShort: 'string',
+                titleLong: 'String',
+              },
+              {
+                key: 'number',
+                type: 'number',
+                titleShort: 'number',
+                titleLong: 'Number',
+              },
+              {
+                key: 'null',
+                type: 'string',
+                titleShort: 'null',
+                titleLong: 'Null',
+              },
+              {
+                key: 'boolean',
+                type: 'boolean',
+                titleShort: 'boolean',
+                titleLong: 'Boolean',
+              },
+              {
+                key: 'array',
+                type: 'jsonArray',
+                titleShort: 'array',
+                titleLong: 'Array',
+              },
+              {
+                key: 'object',
+                type: 'json',
+                titleShort: 'object',
+                titleLong: 'Object',
+              },
             ],
           };
 
@@ -947,7 +1079,24 @@ export const runIoConformanceTests = () => {
         ).rejects.toThrow('Table "nonexistentTable" not found');
       });
     });
+
+    describe('contentType()', () => {
+      it('returns the content type of the given table', async () => {
+        await createExampleTable('table1');
+
+        await io.write({
+          data: {
+            table1: {
+              _type: 'components',
+              _data: [{ a: 'a2' }],
+            },
+          },
+        });
+
+        const contentType = await io.contentType({ table: 'table1' });
+        expect(contentType).toBe('components');
+      });
+    });
   });
 };
-
 runIoConformanceTests();
