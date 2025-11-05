@@ -1,12 +1,7 @@
 import { IoTools } from "@rljson/io";
 import { Json, JsonValue, JsonValueType } from "@rljson/json";
 import { ColumnCfg, TableCfg, TableKey } from "@rljson/rljson";
-const { dbProcedures} = await import('./db-procedures.ts');
-/* v8 ignore next -- @preserve */
-while (typeof dbProcedures !== 'object') {
-  /* v8 ignore next -- @preserve */
-  await new Promise(resolve => setTimeout(resolve, 100));
-}
+import { dbProcedures} from './db-procedures.ts';
 export class DbStatements  {
   
   private _mainSchema: string;
@@ -18,7 +13,6 @@ export class DbStatements  {
 
   // ********************************************************************
   // General statements and properties
-  queryIntro: string = 'SELECT DISTINCT';
   connectingColumn: string = '_hash';
 
   // Names for the main tables in the database
@@ -65,29 +59,29 @@ export class DbStatements  {
     public dropDatabase = (dbName: string) => `DROP DATABASE [${dbName}]`;
   
   // ********************************************************************
-  // add and remove suffixes for internal use  
-    addFix(name: string, fix: string): string {
+  // add and remove suffixes for use in SQL statements
+    private _addFix(name: string, fix: string): string {
       return name.endsWith(fix) ? name : name + fix;
     }
 
-    addTableSuffix(name: string): string {
-      return this.addFix(name, this.suffix.tbl);
+    public addTableSuffix(name: string): string {
+      return this._addFix(name, this.suffix.tbl);
     }
 
-    addColumnSuffix(name: string): string {
-      return this.addFix(name, this.suffix.col);
+    public addColumnSuffix(name: string): string {
+      return this._addFix(name, this.suffix.col);
     }
 
-    removeFix(name: string, fix: string): string {
+    private _removeFix(name: string, fix: string): string {
       return name.endsWith(fix) ? name.slice(0, -fix.length) : name;
     }
 
-    removeTableSuffix(name: string): string {
-      return this.removeFix(name, this.suffix.tbl);
+    public removeTableSuffix(name: string): string {
+      return this._removeFix(name, this.suffix.tbl);
     }
 
-    removeColumnSuffix(name: string): string {
-      return this.removeFix(name, this.suffix.col);
+    public removeColumnSuffix(name: string): string {
+      return this._removeFix(name, this.suffix.col);
     }
 
 

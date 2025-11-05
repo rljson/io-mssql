@@ -1,7 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { IoTools } from "@rljson/io";
 import { ColumnCfg } from "@rljson/rljson";
- import { DbStatements } from '../src/db-statements.ts';
+import { DbStatements } from '../src/db-statements.ts';
 
 describe("DbStatements", () => {
     const schemaName = "myschema";
@@ -9,10 +9,6 @@ describe("DbStatements", () => {
 
     it("should set schemaName correctly", () => {
         expect(dbStatements.schemaName).toBe(schemaName);
-    });
-
-    it("should have correct queryIntro", () => {
-        expect(dbStatements.queryIntro).toBe("SELECT DISTINCT");
     });
 
     it("should have correct table names", () => {
@@ -85,24 +81,16 @@ describe("DbStatements", () => {
       });
     });
 
-    it("addFix should add suffix if not present", () => {
-        expect(dbStatements.addFix("foo", "_col")).toBe("foo_col");
-        expect(dbStatements.addFix("foo_col", "_col")).toBe("foo_col");
-    });
-
     it("addTableSuffix and addColumnSuffix should add correct suffixes", () => {
         expect(dbStatements.addTableSuffix("bar")).toBe("bar_tbl");
         expect(dbStatements.addColumnSuffix("baz")).toBe("baz_col");
     });
 
-    it("removeFix should remove suffix if present", () => {
-        expect(dbStatements.removeFix("foo_col", "_col")).toBe("foo");
-        expect(dbStatements.removeFix("foo", "_col")).toBe("foo");
-    });
-
     it("removeTableSuffix and removeColumnSuffix should remove correct suffixes", () => {
         expect(dbStatements.removeTableSuffix("bar_tbl")).toBe("bar");
         expect(dbStatements.removeColumnSuffix("baz_col")).toBe("baz");
+         expect(dbStatements.removeTableSuffix("bar")).toBe("bar");
+        expect(dbStatements.removeColumnSuffix("baz")).toBe("baz");
     });
 
     it("should generate correct rowCount SQL", () => {
