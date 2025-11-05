@@ -1,12 +1,8 @@
 import { afterAll, beforeAll, describe, expect, it } from 'vitest';
 
-import { adminCfg } from '../src/admin-cfg';
-
-const {DbBasics} = await import('../src/db-basics.ts');
-while (typeof DbBasics !== 'function') {
-      await new Promise(resolve => setTimeout(resolve, 100));
-    }
-const { runScript } = await import('../src/run-script');
+import { adminCfg } from '../src/admin-cfg.ts';
+import { DbBasics } from '../src/db-basics.ts';
+import { runScript } from '../src/run-script.ts';
 
 
 describe('runScript', () => {
@@ -28,7 +24,6 @@ afterAll(async () => {
     const script = 'SELECT 1 AS RESULT';
     const result = await runScript(adminCfg, script, testDb);
     const json = JSON.parse(result[0] as string);
-    //const value = json[0][0].RESULT;
     expect(json.RESULT).toBe(1);
   });
 

@@ -2,7 +2,7 @@
 // Copyright (c) 2025 Rljson
 
 import { Io, IoTestSetup } from '@rljson/io';
-import { adminCfg } from '../src/admin-cfg';
+import { adminCfg } from '../src/admin-cfg.ts';
 import { DbBasics } from '../src/db-basics.ts';
 import { IoMssql } from '../src/io-mssql.ts';
 

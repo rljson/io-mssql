@@ -5,17 +5,7 @@
 // found in the LICENSE file in the root of this package.
 
 import { describe, expect, it } from 'vitest';
-
-let counter = 0;
-const { TemplateProject } = await import('../src/template-project');
-while (typeof TemplateProject !== 'function') {
-  await new Promise(resolve => setTimeout(resolve, 100));
-  counter ++;
-  if(counter > 50){
-    throw new Error('Timeout waiting for TemplateProject to load');
-  }
-}
-
+import { TemplateProject } from '../src/template-project.ts';
 
 describe('TemplateProject', () => {
   it('should validate a template', async () => {

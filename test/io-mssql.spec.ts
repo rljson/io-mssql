@@ -10,22 +10,10 @@
 
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
-import { adminCfg } from '../src/admin-cfg';
+import { adminCfg } from '../src/admin-cfg.ts';
+import { DbBasics } from '../src/db-basics.ts';
+import { IoMssql } from '../src/io-mssql.ts';
 
-let counter = 0;
-const { DbBasics } = await import('../src/db-basics.ts');
-while(typeof DbBasics !== 'function') {
-  await new Promise(resolve => setTimeout(resolve, 100));
-  counter ++;
-  if(counter > 50) break;
-}
-counter = 0;
-const { IoMssql } = await import('../src/io-mssql.ts');
-while(typeof IoMssql !== 'function') {
-  await new Promise(resolve => setTimeout(resolve, 100));
-  counter ++;
-  if(counter > 50) break;
-}
 
 describe('IoMssql', async () => {
   let ioSql: any;

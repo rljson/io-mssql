@@ -20,16 +20,8 @@ import {
 } from '@rljson/rljson';
 
 import sql from 'mssql';
-const { DbBasics } = await import('./db-basics.ts');
-      /* v8 ignore next -- @preserve */
-while (typeof DbBasics !== 'function') {
-  await new Promise((resolve) => setTimeout(resolve, 10));
-}
-const { DbStatements } = await import('./db-statements.ts');
-      /* v8 ignore next -- @preserve */
-while (typeof DbStatements !== 'function') {
-  await new Promise((resolve) => setTimeout(resolve, 10));
-}
+import { DbBasics } from '../src/db-basics.ts';
+import { DbStatements } from '../src/db-statements.ts';
 
 export class IoMssql implements Io {
   private _conn: sql.ConnectionPool;

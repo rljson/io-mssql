@@ -3,18 +3,12 @@ import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
 import { IoTools } from '@rljson/io';
 import { ContentType } from '@rljson/rljson';
-import { adminCfg } from '../src/admin-cfg';
-
+import { adminCfg } from '../src/admin-cfg.ts';
+ import { DbStatements } from '../src/db-statements.ts';
+ import { runScript } from  '../src/run-script.ts';
+import { DbBasics } from '../src/db-basics.ts';
 
 async function createMiniTableCfgsTable(schemaName: string): Promise<void> {
-  let counter = 0;
-  const { DbStatements } = await import('../src/db-statements.ts');
-  while (typeof DbStatements !== 'function') {
-    await new Promise((resolve) => setTimeout(resolve, 100));
-    counter ++;
-    if(counter > 50) break;
-  }  // Prevent isolatedModules error
-  const { runScript } = await import( '../src/run-script');
   const dbStatements = new DbStatements(schemaName);
   const tableCfg = IoTools.tableCfgsTableCfg;
   const script =  dbStatements.createTable(tableCfg);
@@ -28,29 +22,11 @@ async function createMiniTableCfgsTable(schemaName: string): Promise<void> {
 }
 
 describe('dbBasics', async () => {  
-  let counter = 0;
-const { DbBasics } =  await import('../src/db-basics');
-while (typeof DbBasics !== 'function' ) {
-  await new Promise((resolve) => setTimeout(resolve, 10));
-  counter ++;
-  if(counter > 10) {
-    throw new Error('Timeout waiting for DbBasics to load');    
-  } 
-}  // Prevent isolatedModules error
-const { runScript } = await import( '../src/run-script');
-while (typeof runScript !== 'function' ) {
-  await new Promise((resolve) => setTimeout(resolve, 100));
-  counter ++;
-  if(counter > 50) break;
-}  // Prevent isolatedModules error
 let testDbName: string;
 const testSchemaName: string = 'PantrySchema';
 const testLogin: string = 'test_login';
 const testPassword: string = 'Password123!';
-
 const dbBasics = new DbBasics();
-
-
 
 beforeEach(async () => {
   testDbName = 'TestDb_' + Math.random().toString(36).substring(2, 10);  

@@ -1,10 +1,7 @@
 import { describe, it, expect } from "vitest";
 import { IoTools } from "@rljson/io";
 import { ColumnCfg } from "@rljson/rljson";
-const { DbStatements } = await import( "../src/db-statements");
-while (typeof DbStatements !== 'function') {
-  await new Promise(resolve => setTimeout(resolve, 100));
-}
+ import { DbStatements } from '../src/db-statements.ts';
 
 describe("DbStatements", () => {
     const schemaName = "myschema";

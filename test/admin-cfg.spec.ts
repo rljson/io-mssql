@@ -5,7 +5,7 @@
 
 import { describe, expect, it } from 'vitest';
 
-import { adminCfg } from '../src/admin-cfg';
+import { adminCfg } from '../src/admin-cfg.ts';
 
 describe('adminCfg', () => {
   it('should have the correct user', () => {

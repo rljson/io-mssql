@@ -1,37 +1,8 @@
 import sql from 'mssql';
 import { ContentType } from '@rljson/rljson';
-const { runScript } = await import( './run-script.ts');
-let counter = 0;
-const { dbProcedures } = await import('./db-procedures.ts');
-/* v8 ignore next -- @preserve */
-while (typeof dbProcedures !== 'object') {
-  await new Promise(resolve => setTimeout(resolve, 10));
-  counter ++;
-  if(counter > 10){
-    throw new Error('Timeout waiting for dbProcedures to load');
-  } 
-}
-counter = 0;
-const { DbStatements } = await import('./db-statements.ts');
-/* v8 ignore next -- @preserve */
-while (typeof DbStatements !== 'function' && typeof DbStatements !== 'object') {
-  const classType = typeof DbStatements;
-    await new Promise(resolve => setTimeout(resolve, 200));
-    counter ++;
-    if(counter > 200){
-      if (classType === 'undefined') {
-        // Try to re-import DbStatements if it's undefined
-        const imported = await import('./db-statements.ts');
-        await new Promise(resolve => setTimeout(resolve, 200));
-        // Assign DbStatements from the new import
-        Object.assign({ DbStatements }, imported);
-        await new Promise(resolve => setTimeout(resolve, 200));
-      }
-      if(typeof DbStatements !== 'function' && typeof DbStatements !== 'object'){
-        throw new Error(`Timeout ${counter} for DbStatements to load: ${classType}`);
-      }
-    } 
-  }
+import { runScript } from './run-script.ts';
+import { dbProcedures }  from './db-procedures.ts';
+import { DbStatements }  from'./db-statements.ts';
 
 /// Database Initialization (create database, schema etc.)
 /// These are instance methods to deal with the database itself
