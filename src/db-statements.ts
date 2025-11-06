@@ -1,13 +1,14 @@
-import { IoTools } from "@rljson/io";
-import { Json, JsonValue, JsonValueType } from "@rljson/json";
-import { ColumnCfg, TableCfg, TableKey } from "@rljson/rljson";
-import { dbProcedures} from './db-procedures.ts';
-export class DbStatements  {
-  
+import { IoTools } from '@rljson/io';
+import { Json, JsonValue, JsonValueType } from '@rljson/json';
+import { ColumnCfg, TableCfg, TableKey } from '@rljson/rljson';
+
+import { dbProcedures } from './db-procedures.ts';
+
+export class DbStatements {
   private _mainSchema: string;
   // ********************************************************************
   // Initialization needs the schema name
-	constructor(public schemaName: string, mainSchema: string = 'main') {
+  constructor(public schemaName: string, mainSchema: string = 'main') {
     this._mainSchema = mainSchema;
   }
 
@@ -29,12 +30,12 @@ export class DbStatements  {
     ref: 'Ref',
   };
 
-   /**
-    * Converts a JSON value type to an SQL data type.
-    * @param dataType - The JSON value type to convert.
-    * @returns - The corresponding SQL data type.
-    */
-     jsonToSqlType(dataType: JsonValueType): string {
+  /**
+   * Converts a JSON value type to an SQL data type.
+   * @param dataType - The JSON value type to convert.
+   * @returns - The corresponding SQL data type.
+   */
+  jsonToSqlType(dataType: JsonValueType): string {
     // Custom implementation or call super if needed
     // Example: return this.stat.jsonToSqlType(dataType);
     switch (dataType) {
@@ -52,38 +53,37 @@ export class DbStatements  {
         return 'NVARCHAR(MAX)';
     }
   }
-  
+
   // ********************************************************************
   // Database-level statements
-    public createDatabase = (dbName: string) => `CREATE DATABASE [${dbName}]`;
-    public dropDatabase = (dbName: string) => `DROP DATABASE [${dbName}]`;
-  
+  public createDatabase = (dbName: string) => `CREATE DATABASE [${dbName}]`;
+  public dropDatabase = (dbName: string) => `DROP DATABASE [${dbName}]`;
+
   // ********************************************************************
   // add and remove suffixes for use in SQL statements
-    private _addFix(name: string, fix: string): string {
-      return name.endsWith(fix) ? name : name + fix;
-    }
+  private _addFix(name: string, fix: string): string {
+    return name.endsWith(fix) ? name : name + fix;
+  }
 
-    public addTableSuffix(name: string): string {
-      return this._addFix(name, this.suffix.tbl);
-    }
+  public addTableSuffix(name: string): string {
+    return this._addFix(name, this.suffix.tbl);
+  }
 
-    public addColumnSuffix(name: string): string {
-      return this._addFix(name, this.suffix.col);
-    }
+  public addColumnSuffix(name: string): string {
+    return this._addFix(name, this.suffix.col);
+  }
 
-    private _removeFix(name: string, fix: string): string {
-      return name.endsWith(fix) ? name.slice(0, -fix.length) : name;
-    }
+  private _removeFix(name: string, fix: string): string {
+    return name.endsWith(fix) ? name.slice(0, -fix.length) : name;
+  }
 
-    public removeTableSuffix(name: string): string {
-      return this._removeFix(name, this.suffix.tbl);
-    }
+  public removeTableSuffix(name: string): string {
+    return this._removeFix(name, this.suffix.tbl);
+  }
 
-    public removeColumnSuffix(name: string): string {
-      return this._removeFix(name, this.suffix.col);
-    }
-
+  public removeColumnSuffix(name: string): string {
+    return this._removeFix(name, this.suffix.col);
+  }
 
   // ********************************************************************
   // General statements for tables
@@ -94,8 +94,9 @@ export class DbStatements  {
     const sqlCreateColumns = columnsCfg
       .map((col) => {
         let sqlType = this.jsonToSqlType(col.type);
+        // A primary key column cannot be NVARCHAR(MAX), so we limit its size
         if (
-          (col.key.endsWith('Ref') || col.key === this.connectingColumn) &&
+          col.key === this.connectingColumn &&
           sqlType.toLowerCase() === 'nvarchar(max)'
         ) {
           sqlType = 'NVARCHAR(256)';
@@ -109,48 +110,31 @@ export class DbStatements  {
       tableCfg.key
     } PRIMARY KEY ([${this.addColumnSuffix(this.connectingColumn)}])`;
 
-    const foreignKeysArr = this.foreignKeys(
-      columnsCfg
-        .map((col) => col.key)
-        .filter((col) => col.endsWith(this.suffix.ref)),
-    );
-
-    /* v8 ignore next -- @preserve */
-    const foreignKeys = Array.isArray(foreignKeysArr)
-      ? foreignKeysArr.filter(Boolean).join(', ')
-      : foreignKeysArr || '';
-
     const colsWithPrimaryKey = `${sqlCreateColumns}, ${primaryKey}`;
-    const colsWithPrimaryKeyAndForeignKeys = foreignKeys
-      ? `${colsWithPrimaryKey}, ${foreignKeys}`
-      : colsWithPrimaryKey;
 
     const sqlIfNotExists = `IF NOT EXISTS (SELECT * FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_NAME = '${sqltableKey.replace(
       /^\[|\]$/g,
       '',
     )}' AND TABLE_SCHEMA = '${this.schemaName}')
   BEGIN
-    CREATE TABLE [${
-      this.schemaName
-    }].${sqltableKey} (${colsWithPrimaryKeyAndForeignKeys})
+    CREATE TABLE [${this.schemaName}].${sqltableKey} (${colsWithPrimaryKey})
   END`;
     return sqlIfNotExists;
   }
 
   public alterTable(tableKey: TableKey, addedColumns: ColumnCfg[]): string[] {
-      const tableKeyWithSuffix = this.addTableSuffix(tableKey);
-      const statements: string[] = [];
-      for (const col of addedColumns) {
-        const columnKey = this.addColumnSuffix(col.key);
-        const columnType = this.jsonToSqlType(col.type);
-        statements.push(
-          `ALTER TABLE [${this.schemaName}].[${tableKeyWithSuffix}] ADD ${columnKey} ${columnType};`,
-        );
-      }
-      return statements;
+    const tableKeyWithSuffix = this.addTableSuffix(tableKey);
+    const statements: string[] = [];
+    for (const col of addedColumns) {
+      const columnKey = this.addColumnSuffix(col.key);
+      const columnType = this.jsonToSqlType(col.type);
+      statements.push(
+        `ALTER TABLE [${this.schemaName}].[${tableKeyWithSuffix}] ADD ${columnKey} ${columnType};`,
+      );
     }
+    return statements;
+  }
 
- 
   public insertTableCfg() {
     const columnKeys = IoTools.tableCfgsTableCfg.columns.map((col) => col.key);
     const columnKeysWithPostfix = columnKeys.map((col) =>
@@ -163,34 +147,9 @@ export class DbStatements  {
   }
 
   public getContentType(tableName: string, schemaName: string) {
-    return  `EXEC ${this._mainSchema}.${dbProcedures.contentType} @schemaName = '${schemaName}', @tableKey = '${tableName}'`;
+    return `EXEC ${this._mainSchema}.${dbProcedures.contentType} @schemaName = '${schemaName}', @tableKey = '${tableName}'`;
   }
 
-  public foreignKeys(refColumnNames: string[]) {
-    return refColumnNames
-      .map(
-        (col) =>
-          `CONSTRAINT FK_${col}${this.suffix.col} FOREIGN KEY (${col}${
-            this.suffix.col
-          }) REFERENCES ${this.schemaName}.${this.addTableSuffix(
-            col.slice(0, -this.suffix.ref.length),
-          )}(${this.addColumnSuffix(this.connectingColumn)})`,
-      )
-      .join(', ');
-    } 
-
-  public tableReferences(referenceArray: string[]): string {
-    return referenceArray
-      .map(
-        (col) =>
-          `FOREIGN KEY (${col}) REFERENCES ${col.slice(
-            0,
-            -this.suffix.ref.length,
-          )} (${this.addColumnSuffix(this.connectingColumn)})`,
-      )
-      .join(', ');
-  }
-  
   public get tableKeys() {
     return `SELECT TABLE_NAME AS tableKey FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_TYPE = 'BASE TABLE' AND TABLE_SCHEMA = '${this.schemaName}'`;
   }
@@ -206,7 +165,6 @@ export class DbStatements  {
   public get tableCfgs() {
     return `SELECT * FROM [${this.schemaName}].${this.tbl.main}${this.suffix.tbl}`;
   }
-
 
   public get currentTableCfg(): string {
     const sql: string[] = [
@@ -268,9 +226,11 @@ export class DbStatements  {
   }
 
   public rowCount(tableKey: string) {
-    return `SELECT COUNT(*) AS totalCount FROM [${this.schemaName}].[${this.addTableSuffix(tableKey)}]`;
+    return `SELECT COUNT(*) AS totalCount FROM [${
+      this.schemaName
+    }].[${this.addTableSuffix(tableKey)}]`;
   }
-  
+
   public selection(tableKey: string, columns: string, whereClause: string) {
     return `SELECT ${columns} FROM ${tableKey} WHERE ${whereClause}`;
   }
@@ -286,25 +246,25 @@ export class DbStatements  {
 
   public whereString(whereClause: [string, JsonValue][]): string {
     let constraint: string = ' ';
-      for (const [column, value] of whereClause) {
-        const columnWithFix = this.addColumnSuffix(column);
-        /* v8 ignore next -- @preserve */
-  
-        if (typeof value === 'string') {
-          constraint += `${columnWithFix} = '${value}' AND `;
-        } else if (typeof value === 'number') {
-          constraint += `${columnWithFix} = ${value} AND `;
-        } else if (typeof value === 'boolean') {
-          constraint += `${columnWithFix} = ${value ? 1 : 0} AND `;
-        } else if (value === null) {
-          constraint += `${columnWithFix} IS NULL AND `;
-        } else if (typeof value === 'object') {
-          constraint += `${columnWithFix} = '${JSON.stringify(value)}' AND `;
-        } else {
-          throw new Error(`Unsupported value type for column ${column}`);
-        }
+    for (const [column, value] of whereClause) {
+      const columnWithFix = this.addColumnSuffix(column);
+      /* v8 ignore next -- @preserve */
+
+      if (typeof value === 'string') {
+        constraint += `${columnWithFix} = '${value}' AND `;
+      } else if (typeof value === 'number') {
+        constraint += `${columnWithFix} = ${value} AND `;
+      } else if (typeof value === 'boolean') {
+        constraint += `${columnWithFix} = ${value ? 1 : 0} AND `;
+      } else if (value === null) {
+        constraint += `${columnWithFix} IS NULL AND `;
+      } else if (typeof value === 'object') {
+        constraint += `${columnWithFix} = '${JSON.stringify(value)}' AND `;
+      } else {
+        throw new Error(`Unsupported value type for column ${column}`);
       }
-      
+    }
+
     /* v8 ignore next -- @preserve */
     constraint = constraint.endsWith('AND ')
       ? constraint.slice(0, -5)
@@ -312,79 +272,79 @@ export class DbStatements  {
 
     return constraint;
   }
-  
+
   public joinExpression(tableKey: string, alias: string) {
     return `LEFT JOIN ${tableKey} AS ${alias} \n`;
   }
 
   public parseData(data: Json[], tableCfg: TableCfg): Json[] {
-      const columnTypes = tableCfg.columns.map((col) => col.type);
-      const columnKeys = tableCfg.columns.map((col) => col.key);  
-      const convertedResult: Json[] = [];
-  
-      for (const row of data) {
-        const convertedRow: { [key: string]: any } = {};
-        for (let colNum = 0; colNum < columnKeys.length; colNum++) {
-          const key = columnKeys[colNum];
-          const keyWithSuffix = this.addColumnSuffix(key);
-          const type = columnTypes[colNum] as JsonValueType;
-          const val = row[keyWithSuffix];
-  
-          // Null or undefined values are ignored
-          // and not added to the converted row
+    const columnTypes = tableCfg.columns.map((col) => col.type);
+    const columnKeys = tableCfg.columns.map((col) => col.key);
+    const convertedResult: Json[] = [];
+
+    for (const row of data) {
+      const convertedRow: { [key: string]: any } = {};
+      for (let colNum = 0; colNum < columnKeys.length; colNum++) {
+        const key = columnKeys[colNum];
+        const keyWithSuffix = this.addColumnSuffix(key);
+        const type = columnTypes[colNum] as JsonValueType;
+        const val = row[keyWithSuffix];
+
+        // Null or undefined values are ignored
+        // and not added to the converted row
+        /* v8 ignore next -- @preserve */
+        if (val === undefined || val === null) {
+          continue;
+        }
+
+        switch (type) {
+          case 'boolean':
+            convertedRow[key] = val !== 0;
+            break;
           /* v8 ignore next -- @preserve */
-          if (val === undefined || val === null) {
-            continue;
-          }
-  
-          switch (type) {
-            case 'boolean':
-              convertedRow[key] = val !== 0;
-              break;
-            /* v8 ignore next -- @preserve */
-            case 'jsonArray':
-  
-            case 'json':
-              convertedRow[key] = JSON.parse(val as string);
-              break;
-            case 'string':
-            case 'number':
-              convertedRow[key] = val;
-              break;  
-          }
+          case 'jsonArray':
+
+          case 'json':
+            convertedRow[key] = JSON.parse(val as string);
+            break;
+          case 'string':
+          case 'number':
+            convertedRow[key] = val;
+            break;
         }
-  
-        convertedResult.push(convertedRow);
       }
-  
-      return convertedResult;
+
+      convertedResult.push(convertedRow);
     }
-  
+
+    return convertedResult;
+  }
+
   public serializeRow(
-      rowAsJson: Json,
-      tableCfg: TableCfg,
-    ): (JsonValue | null)[] {
-      const result: (JsonValue | null)[] = [];
-  
-      // Iterate all columns in the tableCfg
-      for (const col of tableCfg.columns) {
-        const key = col.key;
-        let value = rowAsJson[key] ?? null;
-        const valueType = typeof value;
-  
-        // Stringify objects and arrays
-        if (value !== null && valueType === 'object') {
-          value = JSON.stringify(value);
-        }
-  
-        // Convert booleans to 1 or 0
-        else if (valueType === 'boolean') {
-          value = value ? 1 : 0;
-        }
-  
-        result.push(value);
+    rowAsJson: Json,
+    tableCfg: TableCfg,
+  ): (JsonValue | null)[] {
+    const result: (JsonValue | null)[] = [];
+
+    // Iterate all columns in the tableCfg
+    for (const col of tableCfg.columns) {
+      const key = col.key;
+      let value = rowAsJson[key] ?? null;
+      const valueType = typeof value;
+
+      // Stringify objects and arrays
+      if (value !== null && valueType === 'object') {
+        value = JSON.stringify(value);
       }
-  
-      return result;
+
+      // Convert booleans to 1 or 0
+      else if (valueType === 'boolean') {
+        value = value ? 1 : 0;
+      }
+
+      result.push(value);
     }
+
+    return result;
+  }
 }

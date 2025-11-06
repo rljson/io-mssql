@@ -33,13 +33,13 @@ git pull
 
 ## Set pull request title
 
-Replace `add contentType etc` here and below
+Replace `new foreign key concept` here and below
 by your new pull request title.
 
 ## Create a feature branch
 
 ```bash
-node scripts/create-branch.js "add contentType etc"
+node scripts/create-branch.js "new foreign key concept"
 ```
 
 ## Update dependencies
@@ -65,7 +65,7 @@ In Vscode, press
 
 ```bash
 git add .
-git commit -am"add contentType etc"
+git commit -am"new foreign key concept"
 ```
 
 ## Increase version
@@ -96,7 +96,7 @@ node scripts/push-branch.js
 ## Create a pull request
 
 ```bash
-gh pr create --base main --title "add contentType etc" --body " "
+gh pr create --base main --title "new foreign key concept" --body " "
 ```
 
 ## Code review
