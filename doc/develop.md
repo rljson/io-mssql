@@ -33,13 +33,13 @@ git pull
 
 ## Set pull request title
 
-Replace `use io for tbl and col naming` here and below
+Replace `publish correctly` here and below
 by your new pull request title.
 
 ## Create a feature branch
 
 ```bash
-node scripts/create-branch.js "use io for tbl and col naming"
+node scripts/create-branch.js "publish correctly"
 ```
 
 ## Update dependencies
@@ -65,7 +65,7 @@ In Vscode, press
 
 ```bash
 git add .
-git commit -am"use io for tbl and col naming"
+git commit -am"publish correctly"
 ```
 
 ## Increase version
@@ -96,7 +96,7 @@ node scripts/push-branch.js
 ## Create a pull request
 
 ```bash
-gh pr create --base main --title "use io for tbl and col naming" --body " "
+gh pr create --base main --title "publish correctly" --body " "
 ```
 
 ## Code review

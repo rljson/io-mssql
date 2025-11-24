@@ -1,9 +1,9 @@
 {
-  "name": "@rljson/template-project",
-  "version": "0.0.20",
-  "description": "Rljson template-project description",
-  "homepage": "https://github.com/rljson/template-project",
-  "bugs": "https://github.com/rljson/template-project/issues",
+  "name": "@rljson/io-mssql",
+  "version": "0.0.21",
+  "description": "Rljson io-mssql description",
+  "homepage": "https://github.com/rljson/io-mssql",
+  "bugs": "https://github.com/rljson/io-mssql/issues",
   "private": false,
   "license": "MIT",
   "engines": {
@@ -11,9 +11,9 @@
   },
   "repository": {
     "type": "git",
-    "url": "git+https://github.com/rljson/template-project.git"
+    "url": "git+https://github.com/rljson/io-mssql.git"
   },
-  "main": "dist/template-project.js",
+  "main": "dist/io-mssql.js",
   "types": "dist/index.d.ts",
   "files": [
     "dist"
@@ -50,7 +50,7 @@
   },
   "dependencies": {
     "@rljson/hash": "^0.0.17",
-    "@rljson/io": "^0.0.58",
+    "@rljson/io": "^0.0.59",
     "@rljson/is-ready": "^0.0.17",
     "@rljson/json": "^0.0.23",
     "@rljson/rljson": "^0.0.71",
