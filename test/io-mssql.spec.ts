@@ -14,19 +14,27 @@ import { adminCfg } from '../src/admin-cfg.ts';
 import { DbBasics } from '../src/db-basics.ts';
 import { IoMssql } from '../src/io-mssql.ts';
 
-
 describe('IoMssql', async () => {
   let ioSql: any;
-  const testDbName = 'TestDb';
+  const testDbName = 'TestDbIoMssql';
   const testSchemaName = 'PantrySchema';
   const dbBasics = new DbBasics();
 
   beforeAll(async () => {
-    await dbBasics.dropDatabase(adminCfg, testDbName);
-    await dbBasics.createDatabase(adminCfg, testDbName);
-    await dbBasics.useDatabase(adminCfg, testDbName);
-    await dbBasics.createSchema(adminCfg, testDbName, testSchemaName);
-    await dbBasics.installProcedures(adminCfg, testDbName);
+    const drop = await dbBasics.dropDatabase(adminCfg, testDbName);
+    console.log(drop);
+    const create = await dbBasics.createDatabase(adminCfg, testDbName);
+    console.log(create);
+    const use = await dbBasics.useDatabase(adminCfg, testDbName);
+    console.log(use);
+    const createSchema = await dbBasics.createSchema(
+      adminCfg,
+      testDbName,
+      testSchemaName,
+    );
+    console.log(createSchema);
+    const install = await dbBasics.installProcedures(adminCfg, testDbName);
+    console.log(install);
   });
 
   beforeEach(async () => {
@@ -47,7 +55,6 @@ describe('IoMssql', async () => {
   it('should connect to the database', async () => {
     expect(ioSql.isOpen).toBe(true);
   });
-
 
   it('should return an error when the _conn cannot be established', async () => {
     const badConfig = {
@@ -112,7 +119,4 @@ describe('IoMssql', async () => {
     // So we check that it starts with 'login_'
     expect(ioSql.currentLogin.startsWith('login_')).toBe(true);
   });
-
-  
-
 });

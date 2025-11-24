@@ -1,48 +1,49 @@
+import { IoTools } from '@rljson/io';
+import { ContentType } from '@rljson/rljson';
+
 import sql from 'mssql';
 import { afterEach, beforeEach, describe, expect, it } from 'vitest';
 
-import { IoTools } from '@rljson/io';
-import { ContentType } from '@rljson/rljson';
 import { adminCfg } from '../src/admin-cfg.ts';
- import { DbStatements } from '../src/db-statements.ts';
- import { runScript } from  '../src/run-script.ts';
 import { DbBasics } from '../src/db-basics.ts';
+import { DbStatements } from '../src/db-statements.ts';
+import { runScript } from '../src/run-script.ts';
 
 async function createMiniTableCfgsTable(schemaName: string): Promise<void> {
   const dbStatements = new DbStatements(schemaName);
   const tableCfg = IoTools.tableCfgsTableCfg;
-  const script =  dbStatements.createTable(tableCfg);
+  const script = dbStatements.createTable(tableCfg);
   await runScript(adminCfg, script, 'master');
   const values = dbStatements.serializeRow(tableCfg, tableCfg);
   const declaredValues: string[] = [];
   values.forEach((val, idx) => {
     declaredValues.push(`DECLARE @p${idx} NVARCHAR(MAX) = '${val}';`);
-  });  
+  });
   return;
 }
 
-describe('dbBasics', async () => {  
-let testDbName: string;
-const testSchemaName: string = 'PantrySchema';
-const testLogin: string = 'test_login';
-const testPassword: string = 'Password123!';
-const dbBasics = new DbBasics();
+describe('dbBasics', async () => {
+  let testDbName: string;
+  const testSchemaName: string = 'PantrySchema';
+  const testLogin: string = 'test_login';
+  const testPassword: string = 'Password123!';
+  const dbBasics = new DbBasics();
 
-beforeEach(async () => {
-  testDbName = 'TestDb_' + Math.random().toString(36).substring(2, 10);  
+  beforeEach(async () => {
+    testDbName = 'TestDb_' + Math.random().toString(36).substring(2, 10);
 
-  await dbBasics.initDb(
-    adminCfg,
-    testDbName,
-    testSchemaName,
-    testLogin,
-    testPassword,
-  );
-});
+    await dbBasics.initDb(
+      adminCfg,
+      testDbName,
+      testSchemaName,
+      testLogin,
+      testPassword,
+    );
+  });
 
-afterEach(async () => {
-  await dbBasics.dropDatabase(adminCfg, testDbName);
-});
+  afterEach(async () => {
+    await dbBasics.dropDatabase(adminCfg, testDbName);
+  });
 
   describe('Database', () => {
     it('should not be created again', async () => {
@@ -78,6 +79,12 @@ afterEach(async () => {
       const result = await dbBasics.dropDatabase(adminCfg, dbName);
       expect(result[0].toString()).toBe(
         JSON.stringify({ Status: `Database ${dbName} does not exist` }),
+      );
+    });
+    it('should throw an error when database does not exist', async () => {
+      const dbName = 'NonExistentDb';
+      await expect(dbBasics.useDatabase(adminCfg, dbName)).rejects.toThrow(
+        `Database "${dbName}" does not exist.`,
       );
     });
   });
@@ -317,193 +324,197 @@ afterEach(async () => {
 
   describe('Running Scripts', () => {
     describe('Dropping Objects', () => {
-    it('should drop all tables` constraints', async () => {
-      const tableName = 'TestTable';
-      const createTable = `CREATE TABLE ${testSchemaName}.${tableName} (ID INT PRIMARY KEY)`;
-      await runScript(adminCfg, createTable, testDbName);
-      const result = await dbBasics.dropConstraints(
-        adminCfg,
-        testDbName,
-        testSchemaName,
-        tableName,
-      );
-      expect(result).toBeUndefined();
+      it('should drop all tables` constraints', async () => {
+        const tableName = 'TestTable';
+        const createTable = `CREATE TABLE ${testSchemaName}.${tableName} (ID INT PRIMARY KEY)`;
+        await runScript(adminCfg, createTable, testDbName);
+        const result = await dbBasics.dropConstraints(
+          adminCfg,
+          testDbName,
+          testSchemaName,
+          tableName,
+        );
+        expect(result).toBeUndefined();
 
-      const leftConstraints = await runScript(
-        adminCfg,
-        `SELECT COUNT(*) AS LEFT_CONSTRAINTS FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA='${testSchemaName}' AND TABLE_NAME='TestTable'`,
-        testDbName,
-      );
-      expect(leftConstraints).toEqual(['{"LEFT_CONSTRAINTS":0}']);
+        const leftConstraints = await runScript(
+          adminCfg,
+          `SELECT COUNT(*) AS LEFT_CONSTRAINTS FROM INFORMATION_SCHEMA.TABLE_CONSTRAINTS WHERE TABLE_SCHEMA='${testSchemaName}' AND TABLE_NAME='TestTable'`,
+          testDbName,
+        );
+        expect(leftConstraints).toEqual(['{"LEFT_CONSTRAINTS":0}']);
+      });
+
+      it('should drop all tables', async () => {
+        const tableName = 'TestTable';
+        const createTable = `CREATE TABLE ${testSchemaName}.${tableName} (ID INT PRIMARY KEY)`;
+        await runScript(adminCfg, createTable, testDbName);
+        const result = await dbBasics.dropTables(
+          adminCfg,
+          testDbName,
+          testSchemaName,
+        );
+        expect(result).toBeUndefined();
+        const remainingTables = await dbBasics.getTableNames(
+          adminCfg,
+          testDbName,
+          testSchemaName,
+        );
+
+        expect(remainingTables.length).toBe(0);
+      });
+
+      it('should drop all users', async () => {
+        const result = await dbBasics.dropUsers(
+          adminCfg,
+          testDbName,
+          testSchemaName,
+        );
+        expect(result).toBeUndefined();
+        const remainingUsers = await dbBasics.getUsers(
+          adminCfg,
+          testDbName,
+          testSchemaName,
+        );
+        expect(remainingUsers.length).toBe(0);
+      });
     });
-
-    it('should drop all tables', async () => {
-      const tableName = 'TestTable';
-      const createTable = `CREATE TABLE ${testSchemaName}.${tableName} (ID INT PRIMARY KEY)`;
-      await runScript(adminCfg, createTable, testDbName);
-      const result = await dbBasics.dropTables(
-        adminCfg,
-        testDbName,
-        testSchemaName,
-      );
-      expect(result).toBeUndefined();
-      const remainingTables = await dbBasics.getTableNames(
-        adminCfg,
-        testDbName,
-        testSchemaName,
-      );
-
-      expect(remainingTables.length).toBe(0);
-    });
-
-    it('should drop all users', async () => {
-      const result = await dbBasics.dropUsers(
-        adminCfg,
-        testDbName,
-        testSchemaName,
-      );
-      expect(result).toBeUndefined();
-      const remainingUsers = await dbBasics.getUsers(
-        adminCfg,
-        testDbName,
-        testSchemaName,
-      );
-      expect(remainingUsers.length).toBe(0);
-    });
-  });
-
 
     describe('Content Type', () => {
-    it('should return a table content type', async () => {
-      // Prepare: create tableCfgs table and insert a row
-      await createMiniTableCfgsTable(testSchemaName);
-      const script = `CREATE TABLE ${testSchemaName}.tableCfgs_tbl (type_col NVARCHAR(255) PRIMARY KEY, key_col NVARCHAR(50))`;
-      await runScript(adminCfg, script, testDbName);  
-      const insertScript = `INSERT INTO ${testSchemaName}.tableCfgs_tbl (type_col, key_col) VALUES ('tableCfgs', 'tableCfgs')`;
-      await runScript(adminCfg, insertScript, testDbName);
+      it('should return a table content type', async () => {
+        // Prepare: create tableCfgs table and insert a row
+        await createMiniTableCfgsTable(testSchemaName);
+        const script = `CREATE TABLE ${testSchemaName}.tableCfgs_tbl (type_col NVARCHAR(255) PRIMARY KEY, key_col NVARCHAR(50))`;
+        await runScript(adminCfg, script, testDbName);
+        const insertScript = `INSERT INTO ${testSchemaName}.tableCfgs_tbl (type_col, key_col) VALUES ('tableCfgs', 'tableCfgs')`;
+        await runScript(adminCfg, insertScript, testDbName);
 
-      const returnType = await dbBasics.contentType(
-        adminCfg,
-        testDbName,
-        testSchemaName,
-        'tableCfgs'
-      );
-      const expectedType: ContentType = 'tableCfgs';
-      const returnedType: ContentType = returnType as ContentType;
-            expect(returnedType).toEqual(expectedType);    
-    });
+        const returnType = await dbBasics.contentType(
+          adminCfg,
+          testDbName,
+          testSchemaName,
+          'tableCfgs',
+        );
+        const expectedType: ContentType = 'tableCfgs';
+        const returnedType: ContentType = returnType as ContentType;
+        expect(returnedType).toEqual(expectedType);
+      });
 
-    it('should throw error if content type table row does not exist', async () => {
-      // Create the content type procedure
-      await dbBasics.createContentTypeProc(adminCfg, testDbName);
+      it('should throw error if content type table row does not exist', async () => {
+        // Create the content type procedure
+        await dbBasics.createContentTypeProc(adminCfg, testDbName);
 
-      // Try to get content type for a non-existent table
-      await expect(
-      dbBasics.contentType(
-        adminCfg,
-        testDbName,
-        testSchemaName,
-        'NonExistentTable'
-      )
-      ).rejects.toThrow('Table "NonExistentTable" not found');
-    });
+        // Try to get content type for a non-existent table
+        await expect(
+          dbBasics.contentType(
+            adminCfg,
+            testDbName,
+            testSchemaName,
+            'NonExistentTable',
+          ),
+        ).rejects.toThrow('Table "NonExistentTable" not found');
+      });
 
+      describe('Transaction Handling', () => {
+        const transactionName = 'TestTransaction';
 
-  describe('Transaction Handling', () => {
-    const transactionName = 'TestTransaction';
+        it('should begin a transaction', async () => {
+          const result = await dbBasics.transact(
+            adminCfg,
+            testDbName,
+            'begin',
+            transactionName,
+          );
+          expect(Array.isArray(result)).toBe(true);
+        });
 
-    it('should begin a transaction', async () => {
-      const result = await dbBasics.transact(
-        adminCfg,
-        testDbName,
-        'begin',
-        transactionName
-      );
-      expect(Array.isArray(result)).toBe(true);
-    });
+        it('should commit a transaction', async () => {
+          // Begin transaction first
+          await dbBasics.transact(
+            adminCfg,
+            testDbName,
+            'begin',
+            transactionName,
+          );
+          const result = await dbBasics.transact(
+            adminCfg,
+            testDbName,
+            'commit',
+            transactionName,
+          );
+          expect(Array.isArray(result)).toBe(true);
+        });
 
-    it('should commit a transaction', async () => {
-      // Begin transaction first
-      await dbBasics.transact(adminCfg, testDbName, 'begin', transactionName);
-      const result = await dbBasics.transact(
-        adminCfg,
-        testDbName,
-        'commit',
-        transactionName
-      );
-      expect(Array.isArray(result)).toBe(true);
-    });
+        it('should rollback a transaction', async () => {
+          // Begin transaction first
+          await dbBasics.transact(
+            adminCfg,
+            testDbName,
+            'begin',
+            transactionName,
+          );
+          const result = await dbBasics.transact(
+            adminCfg,
+            testDbName,
+            'rollback',
+            transactionName,
+          );
+          expect(Array.isArray(result)).toBe(true);
+        });
+      });
 
-    it('should rollback a transaction', async () => {
-      // Begin transaction first
-      await dbBasics.transact(adminCfg, testDbName, 'begin', transactionName);
-      const result = await dbBasics.transact(
-        adminCfg,
-        testDbName,
-        'rollback',
-        transactionName
-      );
-      expect(Array.isArray(result)).toBe(true);
+      // describe('CDC handling', () => {
+      //   it('should enable CDC on the database', async () => {
+      //     const result = await dbBasics.enableCdcDb(adminCfg, testDbName);
+      //     expect(result[0].toString()).toBe(
+      //       JSON.stringify({ Status: `CDC enabled for database ${testDbName}` }),
+      //     );
+      //     // Calling again should have no effect
+      //     const result2 = await dbBasics.enableCdcDb(adminCfg, testDbName);
+      //     expect(result2[0].toString()).toBe(
+      //       JSON.stringify({ Status: `CDC enabled for database ${testDbName}` }),
+      //     );
+      //   });
+
+      //   it('should disable CDC on the database', async () => {
+      //     // First, ensure CDC is enabled
+      //     await dbBasics.enableCdcDb(adminCfg, testDbName);
+      //     const result = await dbBasics.disableCdcDb(adminCfg, testDbName);
+      //     expect(result[0].toString()).toBe(
+      //       JSON.stringify({ Status: `CDC disabled for database ${testDbName}` }),
+      //     );
+      //     // Calling again  should have no effect
+      //     const result2 = await dbBasics.disableCdcDb(adminCfg, testDbName);
+      //     expect(result2[0].toString()).toBe(
+      //       JSON.stringify({ Status: `CDC disabled for database ${testDbName}` }),
+      //     );
+      //   });
+      //   it('should enable and disable CDC on a table', async () => {
+      //     await dbBasics.enableCdcDb(adminCfg, testDbName);
+      //     const tableName = 'CdcTestTable';
+      //     const createTable = `CREATE TABLE ${testSchemaName}.${tableName} (ID INT PRIMARY KEY, Name NVARCHAR(100))`;
+      //     await runScript(adminCfg, createTable, testDbName);
+      //     const result = await dbBasics.enableCDCTable(
+      //       adminCfg,
+      //       testDbName,
+      //       testSchemaName,
+      //       tableName,
+      //     );
+      //     expect(result[0].toString()).toBe(
+      //       JSON.stringify({
+      //         Status: `CDC enabled for table ${testSchemaName}.${tableName}`,
+      //       }),
+      //     );
+
+      //     await expect(
+      //       dbBasics.disableCDCTable(
+      //         adminCfg,
+      //         testDbName,
+      //         testSchemaName,
+      //         tableName,
+      //       ),
+      //     ).resolves.not.toThrow();
+      //   });
+      // });
     });
   });
-
-  // describe('CDC handling', () => {
-  //   it('should enable CDC on the database', async () => {
-  //     const result = await dbBasics.enableCdcDb(adminCfg, testDbName);
-  //     expect(result[0].toString()).toBe(
-  //       JSON.stringify({ Status: `CDC enabled for database ${testDbName}` }),
-  //     );
-  //     // Calling again should have no effect
-  //     const result2 = await dbBasics.enableCdcDb(adminCfg, testDbName);
-  //     expect(result2[0].toString()).toBe(
-  //       JSON.stringify({ Status: `CDC enabled for database ${testDbName}` }),
-  //     );
-  //   });
-
-  //   it('should disable CDC on the database', async () => {
-  //     // First, ensure CDC is enabled
-  //     await dbBasics.enableCdcDb(adminCfg, testDbName);
-  //     const result = await dbBasics.disableCdcDb(adminCfg, testDbName);
-  //     expect(result[0].toString()).toBe(
-  //       JSON.stringify({ Status: `CDC disabled for database ${testDbName}` }),
-  //     );
-  //     // Calling again  should have no effect
-  //     const result2 = await dbBasics.disableCdcDb(adminCfg, testDbName);
-  //     expect(result2[0].toString()).toBe(
-  //       JSON.stringify({ Status: `CDC disabled for database ${testDbName}` }),
-  //     );
-  //   });
-  //   it('should enable and disable CDC on a table', async () => {
-  //     await dbBasics.enableCdcDb(adminCfg, testDbName);
-  //     const tableName = 'CdcTestTable';
-  //     const createTable = `CREATE TABLE ${testSchemaName}.${tableName} (ID INT PRIMARY KEY, Name NVARCHAR(100))`;
-  //     await runScript(adminCfg, createTable, testDbName);
-  //     const result = await dbBasics.enableCDCTable(
-  //       adminCfg,
-  //       testDbName,
-  //       testSchemaName,
-  //       tableName,
-  //     );
-  //     expect(result[0].toString()).toBe(
-  //       JSON.stringify({
-  //         Status: `CDC enabled for table ${testSchemaName}.${tableName}`,
-  //       }),
-  //     );
-
-  //     await expect(
-  //       dbBasics.disableCDCTable(
-  //         adminCfg,
-  //         testDbName,
-  //         testSchemaName,
-  //         tableName,
-  //       ),
-  //     ).resolves.not.toThrow();
-  //   });
-  // });
 });
-  });
-
-
-
-
-})

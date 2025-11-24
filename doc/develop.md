@@ -33,13 +33,13 @@ git pull
 
 ## Set pull request title
 
-Replace `new foreign key concept` here and below
+Replace `use io for tbl and col naming` here and below
 by your new pull request title.
 
 ## Create a feature branch
 
 ```bash
-node scripts/create-branch.js "new foreign key concept"
+node scripts/create-branch.js "use io for tbl and col naming"
 ```
 
 ## Update dependencies
@@ -65,7 +65,7 @@ In Vscode, press
 
 ```bash
 git add .
-git commit -am"new foreign key concept"
+git commit -am"use io for tbl and col naming"
 ```
 
 ## Increase version
@@ -96,7 +96,7 @@ node scripts/push-branch.js
 ## Create a pull request
 
 ```bash
-gh pr create --base main --title "new foreign key concept" --body " "
+gh pr create --base main --title "use io for tbl and col naming" --body " "
 ```
 
 ## Code review

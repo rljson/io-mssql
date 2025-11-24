@@ -7,9 +7,6 @@ export async function runScript(
 ): Promise<string[]> {
   // Connect to SQL Server
   const pool: sql.ConnectionPool = await sql.connect(config);
-  // if (!pool.connected) {
-  //   throw new Error('Failed to connect to SQL Server');
-  // }
 
   // Handle empty script
   if (script.trim().length === 0) {
