@@ -1,4 +1,4 @@
-import { IoTools } from '@rljson/io';
+import { IoDbNameMapping, IoTools } from '@rljson/io';
 import { Json, JsonValue, JsonValueType } from '@rljson/json';
 import { ColumnCfg, TableCfg, TableKey } from '@rljson/rljson';
 
@@ -6,29 +6,12 @@ import { dbProcedures } from './db-procedures.ts';
 
 export class DbStatements {
   private _mainSchema: string;
+  private _map = new IoDbNameMapping();
   // ********************************************************************
   // Initialization needs the schema name
   constructor(public schemaName: string, mainSchema: string = 'main') {
     this._mainSchema = mainSchema;
   }
-
-  // ********************************************************************
-  // General statements and properties
-  connectingColumn: string = '_hash';
-
-  // Names for the main tables in the database
-  tbl: { [key: string]: string } = {
-    main: 'tableCfgs',
-    revision: 'revisions',
-  };
-
-  /// Postfix handling for the database
-  suffix: { [key: string]: string } = {
-    col: '_col',
-    tbl: '_tbl',
-    tmp: '_tmp',
-    ref: 'Ref',
-  };
 
   /**
    * Converts a JSON value type to an SQL data type.
@@ -60,35 +43,18 @@ export class DbStatements {
   public dropDatabase = (dbName: string) => `DROP DATABASE [${dbName}]`;
 
   // ********************************************************************
-  // add and remove suffixes for use in SQL statements
-  private _addFix(name: string, fix: string): string {
-    return name.endsWith(fix) ? name : name + fix;
-  }
-
-  public addTableSuffix(name: string): string {
-    return this._addFix(name, this.suffix.tbl);
-  }
-
-  public addColumnSuffix(name: string): string {
-    return this._addFix(name, this.suffix.col);
-  }
-
-  private _removeFix(name: string, fix: string): string {
-    return name.endsWith(fix) ? name.slice(0, -fix.length) : name;
-  }
-
-  public removeTableSuffix(name: string): string {
-    return this._removeFix(name, this.suffix.tbl);
-  }
-
-  public removeColumnSuffix(name: string): string {
-    return this._removeFix(name, this.suffix.col);
-  }
+  // Table-name forwarding
+  public mainTable = this._map.addTableSuffix(this._map.tableNames.main);
+  public revisionsTable = this._map.addTableSuffix(
+    this._map.tableNames.revision,
+  );
+  // type for content types
+  public typeName = this._map.addColumnSuffix('type');
 
   // ********************************************************************
   // General statements for tables
   public createTable(tableCfg: TableCfg): string {
-    const sqltableKey = this.addTableSuffix(tableCfg.key);
+    const sqltableKey = this._map.addTableSuffix(tableCfg.key);
     const columnsCfg = tableCfg.columns;
 
     const sqlCreateColumns = columnsCfg
@@ -96,19 +62,19 @@ export class DbStatements {
         let sqlType = this.jsonToSqlType(col.type);
         // A primary key column cannot be NVARCHAR(MAX), so we limit its size
         if (
-          col.key === this.connectingColumn &&
+          col.key === this._map.primaryKeyColumn &&
           sqlType.toLowerCase() === 'nvarchar(max)'
         ) {
           sqlType = 'NVARCHAR(256)';
         }
-        return `${this.addColumnSuffix(col.key)} ${sqlType}`;
+        return `${this._map.addColumnSuffix(col.key)} ${sqlType}`;
       })
       .join(', ');
 
     // standard primary key - do not remove ;-)
     const primaryKey = `CONSTRAINT PK_${
       tableCfg.key
-    } PRIMARY KEY ([${this.addColumnSuffix(this.connectingColumn)}])`;
+    } PRIMARY KEY ([${this._map.addColumnSuffix(this._map.primaryKeyColumn)}])`;
 
     const colsWithPrimaryKey = `${sqlCreateColumns}, ${primaryKey}`;
 
@@ -123,10 +89,10 @@ export class DbStatements {
   }
 
   public alterTable(tableKey: TableKey, addedColumns: ColumnCfg[]): string[] {
-    const tableKeyWithSuffix = this.addTableSuffix(tableKey);
+    const tableKeyWithSuffix = this._map.addTableSuffix(tableKey);
     const statements: string[] = [];
     for (const col of addedColumns) {
-      const columnKey = this.addColumnSuffix(col.key);
+      const columnKey = this._map.addColumnSuffix(col.key);
       const columnType = this.jsonToSqlType(col.type);
       statements.push(
         `ALTER TABLE [${this.schemaName}].[${tableKeyWithSuffix}] ADD ${columnKey} ${columnType};`,
@@ -138,12 +104,14 @@ export class DbStatements {
   public insertTableCfg() {
     const columnKeys = IoTools.tableCfgsTableCfg.columns.map((col) => col.key);
     const columnKeysWithPostfix = columnKeys.map((col) =>
-      this.addColumnSuffix(col),
+      this._map.addColumnSuffix(col),
     );
     const columnsSql = columnKeysWithPostfix.join(', ');
     const valuesSql = columnKeys.map((_, i) => `@p${i}`).join(', ');
 
-    return `INSERT INTO [${this.schemaName}].${this.tbl.main}${this.suffix.tbl} ( ${columnsSql} ) VALUES (${valuesSql})`;
+    return `INSERT INTO [${this.schemaName}].${this._map.addTableSuffix(
+      this._map.tableNames.main,
+    )} ( ${columnsSql} ) VALUES (${valuesSql})`;
   }
 
   public getContentType(tableName: string, schemaName: string) {
@@ -159,11 +127,15 @@ export class DbStatements {
   }
 
   public get tableCfg() {
-    return `SELECT * FROM [${this.schemaName}].${this.tbl.main}${this.suffix.tbl} WHERE key${this.suffix.col} = ?`;
+    return `SELECT * FROM [${this.schemaName}].${this._map.addTableSuffix(
+      this._map.tableNames.main,
+    )} WHERE ${this._map.addColumnSuffix('key')} = ?`;
   }
 
   public get tableCfgs() {
-    return `SELECT * FROM [${this.schemaName}].${this.tbl.main}${this.suffix.tbl}`;
+    return `SELECT * FROM [${this.schemaName}].${this._map.addTableSuffix(
+      this._map.tableNames.main,
+    )}`;
   }
 
   public get currentTableCfg(): string {
@@ -228,7 +200,7 @@ export class DbStatements {
   public rowCount(tableKey: string) {
     return `SELECT COUNT(*) AS totalCount FROM [${
       this.schemaName
-    }].[${this.addTableSuffix(tableKey)}]`;
+    }].[${this._map.addTableSuffix(tableKey)}]`;
   }
 
   public selection(tableKey: string, columns: string, whereClause: string) {
@@ -241,13 +213,13 @@ export class DbStatements {
     }
     return `SELECT ${namedColumns} FROM [${
       this.schemaName
-    }].[${this.addTableSuffix(tableKey)}]`;
+    }].[${this._map.addTableSuffix(tableKey)}]`;
   }
 
   public whereString(whereClause: [string, JsonValue][]): string {
     let constraint: string = ' ';
     for (const [column, value] of whereClause) {
-      const columnWithFix = this.addColumnSuffix(column);
+      const columnWithFix = this._map.addColumnSuffix(column);
       /* v8 ignore next -- @preserve */
 
       if (typeof value === 'string') {
@@ -286,7 +258,7 @@ export class DbStatements {
       const convertedRow: { [key: string]: any } = {};
       for (let colNum = 0; colNum < columnKeys.length; colNum++) {
         const key = columnKeys[colNum];
-        const keyWithSuffix = this.addColumnSuffix(key);
+        const keyWithSuffix = this._map.addColumnSuffix(key);
         const type = columnTypes[colNum] as JsonValueType;
         const val = row[keyWithSuffix];
 

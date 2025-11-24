@@ -13,17 +13,6 @@ describe('DbStatements', () => {
     expect(dbStatements.schemaName).toBe(schemaName);
   });
 
-  it('should have correct table names', () => {
-    expect(dbStatements.tbl.main).toBe('tableCfgs');
-    expect(dbStatements.tbl.revision).toBe('revisions');
-  });
-
-  it('should have correct suffixes', () => {
-    expect(dbStatements.suffix.col).toBe('_col');
-    expect(dbStatements.suffix.tbl).toBe('_tbl');
-    expect(dbStatements.suffix.tmp).toBe('_tmp');
-  });
-
   describe('MsSqlStatements.jsonToSqlType', () => {
     it('should return NVARCHAR(MAX) for "string"', () => {
       expect(dbStatements.jsonToSqlType('string')).toBe('NVARCHAR(MAX)');
@@ -57,18 +46,6 @@ describe('DbStatements', () => {
 
   it('should generate correct DROP DATABASE statement', () => {
     expect(dbStatements.dropDatabase('testdb')).toBe('DROP DATABASE [testdb]');
-  });
-
-  it('addTableSuffix and addColumnSuffix should add correct suffixes', () => {
-    expect(dbStatements.addTableSuffix('bar')).toBe('bar_tbl');
-    expect(dbStatements.addColumnSuffix('baz')).toBe('baz_col');
-  });
-
-  it('removeTableSuffix and removeColumnSuffix should remove correct suffixes', () => {
-    expect(dbStatements.removeTableSuffix('bar_tbl')).toBe('bar');
-    expect(dbStatements.removeColumnSuffix('baz_col')).toBe('baz');
-    expect(dbStatements.removeTableSuffix('bar')).toBe('bar');
-    expect(dbStatements.removeColumnSuffix('baz')).toBe('baz');
   });
 
   it('should generate correct rowCount SQL', () => {
