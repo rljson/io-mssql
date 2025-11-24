@@ -32,15 +32,8 @@ export class DbBasics {
         SELECT 'Database ${dbName} already exists' AS Status;
       END
     `;
-    let returnMessage: string[] = [];
-    try {
-      // Test if database exists by trying to use it
-      returnMessage = await runScript(adminConfig, script, dbName);
-    } catch (error) {
-      console.error(error);
-      throw new Error(`Database "${dbName}" does not exist.`);
-    }
-    return returnMessage;
+
+    return await runScript(adminConfig, script, dbName);
   }
 
   public async useDatabase(
