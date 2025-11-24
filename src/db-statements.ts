@@ -49,7 +49,7 @@ export class DbStatements {
     this._map.tableNames.revision,
   );
   // type for content types
-  public typeName = this._map.addColumnSuffix('type');
+  public typeName = this._map.addColumnSuffix(this._map.typeColumn);
 
   // ********************************************************************
   // General statements for tables
@@ -129,7 +129,7 @@ export class DbStatements {
   public get tableCfg() {
     return `SELECT * FROM [${this.schemaName}].${this._map.addTableSuffix(
       this._map.tableNames.main,
-    )} WHERE ${this._map.addColumnSuffix('key')} = ?`;
+    )} WHERE ${this._map.addColumnSuffix(this._map.keyColumn)} = ?`;
   }
 
   public get tableCfgs() {
