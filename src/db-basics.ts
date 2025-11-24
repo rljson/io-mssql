@@ -1,15 +1,17 @@
-import sql from 'mssql';
 import { ContentType } from '@rljson/rljson';
+
+import sql from 'mssql';
+
+import { dbProcedures } from './db-procedures.ts';
+import { DbStatements } from './db-statements.ts';
 import { runScript } from './run-script.ts';
-import { dbProcedures }  from './db-procedures.ts';
-import { DbStatements }  from'./db-statements.ts';
 
 /// Database Initialization (create database, schema etc.)
 /// These are instance methods to deal with the database itself
 export class DbBasics {
-  private _mainSchema: string; 
+  private _mainSchema: string;
   constructor(mainSchema: string = 'main') {
-    this._mainSchema = mainSchema;   
+    this._mainSchema = mainSchema;
   }
 
   //****Database */
@@ -30,6 +32,7 @@ export class DbBasics {
         SELECT 'Database ${dbName} already exists' AS Status;
       END
     `;
+
     return await runScript(adminConfig, script, dbName);
   }
 
@@ -37,8 +40,17 @@ export class DbBasics {
     adminConfig: sql.config,
     dbName: string,
   ): Promise<string[]> {
-    const useDbScript = `USE [${dbName}];
+    const useDbScript = `USE ${dbName};
+    GO --REM
     SELECT 'Using database ${dbName}' AS Status;`;
+
+    try {
+      // Test if database exists by trying to use it
+      await runScript(adminConfig, useDbScript, dbName);
+    } catch (error) {
+      console.error(error);
+      throw new Error(`Database "${dbName}" does not exist.`);
+    }
     return await runScript(adminConfig, useDbScript, dbName);
   }
 
@@ -112,7 +124,6 @@ export class DbBasics {
     adminConfig: sql.config,
     dbName: string,
   ): Promise<string[]> {
-   
     const script = `
       CREATE OR ALTER PROCEDURE
           ${this._mainSchema}.${dbProcedures.dropLogins}( @SchemaName NVARCHAR(50))
@@ -310,8 +321,8 @@ export class DbBasics {
     dbName: string,
   ): Promise<string[]> {
     const dbStatements = new DbStatements(this._mainSchema);
-    const sourceTable = dbStatements.addTableSuffix('tableCfgs');
-    const resultCol = dbStatements.addColumnSuffix('type');
+    const sourceTable = dbStatements.mainTable;
+    const resultCol = dbStatements.typeName;
     const script = `
       CREATE OR ALTER PROCEDURE
       ${this._mainSchema}.${dbProcedures.contentType} (@schemaName NVARCHAR(256), @tableKey NVARCHAR(256))
@@ -339,9 +350,8 @@ export class DbBasics {
     if (result.length > 1) {
       throw new Error(`Table "${tableName}" not found`);
     }
-    const parsed = JSON.parse(result[0]);    
+    const parsed = JSON.parse(result[0]);
     return parsed[Object.keys(parsed)[0]] as ContentType;
-   
   }
 
   //***user procedures  */

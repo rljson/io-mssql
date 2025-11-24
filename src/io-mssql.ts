@@ -5,7 +5,7 @@
 // found in the LICENSE file in the root of this package.
 
 import { hip, hsh } from '@rljson/hash';
-import { Io, IoTools } from '@rljson/io';
+import { Io, IoDbNameMapping, IoTools } from '@rljson/io';
 import { IsReady } from '@rljson/is-ready';
 import { Json, JsonValue, JsonValueType } from '@rljson/json';
 import {
@@ -20,6 +20,7 @@ import {
 } from '@rljson/rljson';
 
 import sql from 'mssql';
+
 import { DbBasics } from '../src/db-basics.ts';
 import { DbStatements } from '../src/db-statements.ts';
 
@@ -30,6 +31,7 @@ export class IoMssql implements Io {
   private _schemaName: string = 'PantrySchema';
   private stm = new DbStatements(this._schemaName);
   private _dbBasics = new DbBasics();
+  private _map = new IoDbNameMapping();
 
   constructor(
     private readonly userCfg: sql.config,
@@ -38,11 +40,11 @@ export class IoMssql implements Io {
     // Create a new connection pool this.userCfg
     this._conn = new sql.ConnectionPool(this.userCfg!);
 
-      /* v8 ignore next -- @preserve */
+    /* v8 ignore next -- @preserve */
     this._conn.on('error', (err) => {
-      console.error('SQL Server error:', err);      
+      console.error('SQL Server error:', err);
     });
-      /* v8 ignore next -- @preserve */
+    /* v8 ignore next -- @preserve */
     if (this.schemaName !== undefined) {
       this._schemaName = this.schemaName;
     }
@@ -90,10 +92,10 @@ export class IoMssql implements Io {
     const returnFile: Rljson = {};
     for (const table of tables) {
       const tableDump: Rljson = await this.dumpTable({
-        table: this.stm.removeTableSuffix(table),
+        table: this._map.removeTableSuffix(table),
       });
-      returnFile[this.stm.removeTableSuffix(table)] =
-        tableDump[this.stm.removeTableSuffix(table)];
+      returnFile[this._map.removeTableSuffix(table)] =
+        tableDump[this._map.removeTableSuffix(table)];
     }
     this._addMissingHashes(returnFile);
     return returnFile;
@@ -101,14 +103,14 @@ export class IoMssql implements Io {
 
   async dumpTable(request: { table: string }): Promise<Rljson> {
     const dbRequest = new sql.Request(this._conn);
-    const tableKey = this.stm.addTableSuffix(request.table);
+    const tableKey = this._map.addTableSuffix(request.table);
     await this._ioTools.throwWhenTableDoesNotExist(request.table);
 
     // get table's column structure
     const tableCfg = await this._ioTools.tableCfg(request.table);
     const columnKeys = tableCfg.columns.map((col) => col.key);
     const columnKeysWithSuffix = columnKeys.map((col) =>
-      this.stm.addColumnSuffix(col),
+      this._map.addColumnSuffix(col),
     );
 
     const returnData = await dbRequest.query(
@@ -133,7 +135,7 @@ export class IoMssql implements Io {
 
   async tableExists(tableKey: TableKey): Promise<boolean> {
     const dbRequest = new sql.Request(this._conn);
-    const tableKeyWithSuffix = this.stm.addTableSuffix(tableKey);
+    const tableKeyWithSuffix = this._map.addTableSuffix(tableKey);
     dbRequest.input('tableName', sql.NVarChar, tableKeyWithSuffix);
     const returnData = await dbRequest.query(this.stm.tableExists);
     return returnData.recordset[0]['tableExists'];
@@ -172,13 +174,13 @@ export class IoMssql implements Io {
 
     await iterateTables(hashedData, async (tableName, tableData) => {
       const tableCfg = await this._ioTools.tableCfg(tableName);
-      const tableKeyWithSuffix = this.stm.addTableSuffix(tableName);
+      const tableKeyWithSuffix = this._map.addTableSuffix(tableName);
 
       for (const row of tableData._data) {
         const sqlRequest = new sql.Request(this._conn);
         const columnKeys = tableCfg.columns.map((col) => col.key);
         const columnKeysWithPostfix = columnKeys.map((column) =>
-          this.stm.addColumnSuffix(column),
+          this._map.addColumnSuffix(column),
         );
         const placeholders = columnKeys.map((_, i) => `@p${i}`).join(', ');
         const query = `INSERT INTO ${tableKeyWithSuffix} (${columnKeysWithPostfix.join(
@@ -196,22 +198,19 @@ export class IoMssql implements Io {
         try {
           await sqlRequest.query(query);
         } catch (error) {
-           /* v8 ignore next -- @preserve */
+          /* v8 ignore next -- @preserve */
           if ((error as any).number === 2627) {
             return;
-          }         
-                     /* v8 ignore next -- @preserve */
+          }
+          /* v8 ignore next -- @preserve */
           const errorMessage =
             error instanceof Error ? error.message : 'Unknown error';
-           /* v8 ignore next -- @preserve */
-          const fixedErrorMessage = errorMessage
-            .replace(this.stm.suffix.col, '')
-            .replace(this.stm.suffix.tbl, '');
+          /* v8 ignore next -- @preserve */
 
           errorCount++;
           errorStore.set(
             errorCount,
-            `Error inserting into table ${tableName}: ${fixedErrorMessage}`,
+            `Error inserting into table ${tableName}: ${errorMessage}`,
           );
           /* v8 ignore end */
         }
@@ -221,11 +220,10 @@ export class IoMssql implements Io {
       if (errorCount > 0) {
         /* v8 ignore next -- @preserve */
         const errorMessages = Array.from(errorStore.values()).join('\n');
-           /* v8 ignore next -- @preserve */
+        /* v8 ignore next -- @preserve */
         throw new Error(
           `Failed to write data to MSSQL database. Errors:\n${errorMessages}`,
         );
-        
       }
     });
   }
@@ -238,7 +236,7 @@ export class IoMssql implements Io {
     await this._ioTools.throwWhenColumnDoesNotExist(request.table, [
       ...Object.keys(request.where),
     ]);
-    const tableKey = this.stm.addTableSuffix(request.table);
+    const tableKey = this._map.addTableSuffix(request.table);
     const whereClause = this.stm.whereString(Object.entries(request.where));
 
     const sqlSt = this.stm.selection(tableKey, '*', whereClause);
@@ -266,13 +264,13 @@ export class IoMssql implements Io {
 
   async rowCount(table: string): Promise<number> {
     await this._ioTools.throwWhenTableDoesNotExist(table);
-    table = this.stm.addTableSuffix(table);
+    table = this._map.addTableSuffix(table);
     const sqlReq = new sql.Request(this._conn);
 
     const result = await sqlReq.query(this.stm.rowCount(table));
 
     // Return the array of counts
-/* v8 ignore next -- @preserve */
+    /* v8 ignore next -- @preserve */
     return result.recordset[0].totalCount ?? 0; // Return the second count if available, otherwise the first, or 0 if both are null
   }
 
@@ -288,7 +286,12 @@ export class IoMssql implements Io {
     await this._dbBasics.createSchema(this.userCfg, dbName, testSchemaName);
 
     // Create login and user
-    await this._dbBasics.createLogin(this.userCfg, dbName, loginName, loginPassword);
+    await this._dbBasics.createLogin(
+      this.userCfg,
+      dbName,
+      loginName,
+      loginPassword,
+    );
     await this._dbBasics.createUser(
       this.userCfg,
       dbName,
@@ -323,7 +326,7 @@ export class IoMssql implements Io {
         const result = await testReq.query(
           `SELECT name AS loginName FROM sys.sql_logins WHERE name = '${loginName}'`,
         );
-/* v8 ignore next -- @preserve */
+        /* v8 ignore next -- @preserve */
         if (result.recordset.length > 0) {
           return true;
         }
@@ -332,11 +335,10 @@ export class IoMssql implements Io {
         /* v8 ignore end */
       }
     };
-    await waitForUser();    
-      /* v8 ignore next -- @preserve */
+    await waitForUser();
+    /* v8 ignore next -- @preserve */
     if (!waitForUser) {
       throw new Error(`Login ${loginName} not found after retries.`);
-    
     }
 
     return new IoMssql(loginUser, testSchemaName);
@@ -351,7 +353,7 @@ export class IoMssql implements Io {
     return this._schemaName;
   }
   public get currentLogin(): string {
-      /* v8 ignore next -- @preserve */
+    /* v8 ignore next -- @preserve */
     return this.userCfg.user || 'unknown';
   }
 
@@ -371,8 +373,8 @@ export class IoMssql implements Io {
     values.forEach((val, idx) => {
       sqlReq.input(`p${idx}`, val);
     });
-    
-      /* v8 ignore next -- @preserve */
+
+    /* v8 ignore next -- @preserve */
     try {
       await sqlReq.query(insertQuery);
     } catch (error) {
@@ -380,7 +382,7 @@ export class IoMssql implements Io {
         // Duplicate entry, tableCfgs already exists
         return;
       }
-      throw error;  
+      throw error;
     }
   };
 
@@ -453,7 +455,7 @@ export class IoMssql implements Io {
       const convertedRow: { [key: string]: any } = {};
       for (let colNum = 0; colNum < columnKeys.length; colNum++) {
         const key = columnKeys[colNum];
-        const keyWithSuffix = this.stm.addColumnSuffix(key);
+        const keyWithSuffix = this._map.addColumnSuffix(key);
         const type = columnTypes[colNum] as JsonValueType;
         const val = row[keyWithSuffix];
 
