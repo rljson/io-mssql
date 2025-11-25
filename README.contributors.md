@@ -19,6 +19,12 @@ Read [prepare.md](doc/prepare.md)
 
 <!-- ........................................................................-->
 
+## Installation
+
+Read [install-ubunto.md](doc/install-ubuntu.md)
+Read [install-docker.md](doc/install-docker.md)
+Read [install-sql-server.md](doc/install-sql-server.md)
+
 ## Develop
 
 Read [develop.md](doc/develop.md)
