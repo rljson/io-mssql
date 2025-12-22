@@ -183,7 +183,9 @@ export class IoMssql implements Io {
           this._map.addColumnSuffix(column),
         );
         const placeholders = columnKeys.map((_, i) => `@p${i}`).join(', ');
-        const query = `INSERT INTO ${tableKeyWithSuffix} (${columnKeysWithPostfix.join(
+        const query = `INSERT INTO ${
+          this._schemaName
+        }.${tableKeyWithSuffix} (${columnKeysWithPostfix.join(
           ', ',
         )}) VALUES (${placeholders})`;
 
