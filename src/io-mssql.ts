@@ -175,47 +175,46 @@ export class IoMssql implements Io {
     await iterateTables(hashedData, async (tableName, tableData) => {
       const tableCfg = await this._ioTools.tableCfg(tableName);
       const tableKeyWithSuffix = this._map.addTableSuffix(tableName);
-
+      const sqlRequest = new sql.Request(this._conn);
+      const columnKeys = this._prepareColumnNames(tableCfg.columns);
+      const mainQuery = `INSERT INTO ${this._schemaName}.${tableKeyWithSuffix} (${columnKeys}) VALUES `;
+      const placeHolderLine: string[] = [];
+      const placeHolderLines: string[] = [];
+      const columnCount = tableCfg.columns.length;
+      let position = 0;
       for (const row of tableData._data) {
-        const sqlRequest = new sql.Request(this._conn);
-        const columnKeys = tableCfg.columns.map((col) => col.key);
-        const columnKeysWithPostfix = columnKeys.map((column) =>
-          this._map.addColumnSuffix(column),
-        );
-        const placeholders = columnKeys.map((_, i) => `@p${i}`).join(', ');
-        const query = `INSERT INTO ${
-          this._schemaName
-        }.${tableKeyWithSuffix} (${columnKeysWithPostfix.join(
-          ', ',
-        )}) VALUES (${placeholders})`;
-
         const serializedRow = this._serializeRow(row, tableCfg);
         const stringArray = serializedRow.map((val) =>
           val === null ? null : String(val),
         );
 
-        for (let i = 0; i < stringArray.length; i++) {
-          sqlRequest.input(`p${i}`, stringArray[i]);
+        for (let i = position; i < position + stringArray.length; i++) {
+          sqlRequest.input(`p${i}`, stringArray[i - position]);
+          placeHolderLine.push(`@p${i}`);
         }
-        try {
-          await sqlRequest.query(query);
-        } catch (error) {
-          /* v8 ignore next -- @preserve */
-          if ((error as any).number === 2627) {
-            return;
-          }
-          /* v8 ignore next -- @preserve */
-          const errorMessage =
-            error instanceof Error ? error.message : 'Unknown error';
-          /* v8 ignore next -- @preserve */
+        placeHolderLines.push(`(${placeHolderLine.join(', ')})`);
+        placeHolderLine.length = 0;
 
-          errorCount++;
-          errorStore.set(
-            errorCount,
-            `Error inserting into table ${tableName}: ${errorMessage}`,
-          );
-          /* v8 ignore end */
+        position += columnCount;
+      }
+      try {
+        await sqlRequest.query(mainQuery + placeHolderLines.join(', '));
+      } catch (error) {
+        /* v8 ignore next -- @preserve */
+        if ((error as any).number === 2627) {
+          return;
         }
+        /* v8 ignore next -- @preserve */
+        const errorMessage =
+          error instanceof Error ? error.message : 'Unknown error';
+        /* v8 ignore next -- @preserve */
+
+        errorCount++;
+        errorStore.set(
+          errorCount,
+          `Error inserting into table ${tableName}: ${errorMessage}`,
+        );
+        /* v8 ignore end */
       }
 
       /* v8 ignore next -- @preserve */
@@ -518,5 +517,11 @@ export class IoMssql implements Io {
     }
 
     return result;
+  }
+
+  private _prepareColumnNames(columnKeys: ColumnCfg[]): string {
+    return columnKeys
+      .map((col) => this._map.addColumnSuffix(col.key))
+      .join(', ');
   }
 }
