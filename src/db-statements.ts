@@ -275,6 +275,8 @@ export class DbStatements {
             break;
           /* v8 ignore next -- @preserve */
           case 'jsonArray':
+            convertedRow[key] = JSON.parse(val as string);
+            break;
 
           case 'json':
             convertedRow[key] = JSON.parse(val as string);
