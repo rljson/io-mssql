@@ -1,6 +1,6 @@
 {
   "name": "@rljson/io-mssql",
-  "version": "0.0.25",
+  "version": "0.0.26",
   "description": "Rljson io-mssql description",
   "homepage": "https://github.com/rljson/io-mssql",
   "bugs": "https://github.com/rljson/io-mssql/issues",
