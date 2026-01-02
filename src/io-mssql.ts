@@ -471,6 +471,8 @@ export class IoMssql implements Io {
             convertedRow[key] = val; // !== 0;
             break;
           case 'jsonArray':
+            convertedRow[key] = JSON.parse(val as string);
+            break;
           case 'json':
             convertedRow[key] = JSON.parse(val as string);
             break;
