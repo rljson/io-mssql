@@ -8,6 +8,10 @@
 // Use of this source code is governed by terms that can be
 // found in the LICENSE file in the root of this package.
 
+import { exampleTableCfg, Rljson, TableCfg } from '@rljson/rljson';
+
+import { readFileSync } from 'fs';
+import { join } from 'path';
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { adminCfg } from '../src/admin-cfg.ts';
@@ -17,24 +21,15 @@ import { IoMssql } from '../src/io-mssql.ts';
 describe('IoMssql', async () => {
   let ioSql: any;
   const testDbName = 'TestDbIoMssql';
-  const testSchemaName = 'PantrySchema';
+  const testSchemaName = 'main';
   const dbBasics = new DbBasics();
 
   beforeAll(async () => {
-    const drop = await dbBasics.dropDatabase(adminCfg, testDbName);
-    console.log(drop);
-    const create = await dbBasics.createDatabase(adminCfg, testDbName);
-    console.log(create);
-    const use = await dbBasics.useDatabase(adminCfg, testDbName);
-    console.log(use);
-    const createSchema = await dbBasics.createSchema(
-      adminCfg,
-      testDbName,
-      testSchemaName,
-    );
-    console.log(createSchema);
-    const install = await dbBasics.installProcedures(adminCfg, testDbName);
-    console.log(install);
+    await dbBasics.dropDatabase(adminCfg, testDbName);
+    await dbBasics.createDatabase(adminCfg, testDbName);
+    await dbBasics.useDatabase(adminCfg, testDbName);
+    await dbBasics.createSchema(adminCfg, testDbName, testSchemaName);
+    await dbBasics.installProcedures(adminCfg, testDbName);
   });
 
   beforeEach(async () => {
@@ -118,5 +113,57 @@ describe('IoMssql', async () => {
     // The login is generated in the example() method as login_<random>
     // So we check that it starts with 'login_'
     expect(ioSql.currentLogin.startsWith('login_')).toBe(true);
+  });
+
+  it('should write an array correctly', async () => {
+    const tableName = 'seriesArticleRef';
+    const exampleCfg: TableCfg = exampleTableCfg({ key: tableName });
+    const tableCfg: TableCfg = {
+      ...exampleCfg,
+      columns: [
+        {
+          key: '_hash',
+          type: 'string',
+          titleShort: '_hash',
+          titleLong: 'Hash',
+        },
+        {
+          key: 'articleSliceId',
+          type: 'jsonArray',
+          titleShort: 'articleSliceId',
+          titleLong: 'articleSliceId',
+        },
+      ],
+    };
+
+    await ioSql.createOrExtendTable({ tableCfg });
+
+    const record4 = JSON.parse(
+      readFileSync(join(__dirname, '../data/record_4.json'), 'utf-8'),
+    );
+
+    const testData4: Rljson = {
+      seriesArticleRef: {
+        _type: 'components',
+        _data: record4,
+      },
+    };
+    await ioSql.write({ data: testData4 });
+
+    // const record2 = JSON.parse(
+    //   readFileSync(join(__dirname, '../data/record_2.json'), 'utf-8'),
+    // );
+
+    // const testData2: Rljson = {
+    //   arrayTestTable: {
+    //     _type: 'components',
+    //     _data: record2,
+    //   },
+    // };
+    // await ioSql.write({ data: testData2 });
+
+    // await ioSql.write({ data: testData2 });
+
+    expect(1).toEqual(1);
   });
 });

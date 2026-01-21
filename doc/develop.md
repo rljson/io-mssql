@@ -33,13 +33,13 @@ git pull
 
 ## Set pull request title
 
-Replace `publish correctly` here and below
+Replace `fix mass insert problem` here and below
 by your new pull request title.
 
 ## Create a feature branch
 
 ```bash
-node scripts/create-branch.js "publish correctly"
+node scripts/create-branch.js "fix mass insert problem"
 ```
 
 ## Update dependencies
@@ -65,7 +65,7 @@ In Vscode, press
 
 ```bash
 git add .
-git commit -am"publish correctly"
+git commit -am"fix mass insert problem"
 ```
 
 ## Increase version
@@ -96,7 +96,7 @@ node scripts/push-branch.js
 ## Create a pull request
 
 ```bash
-gh pr create --base main --title "publish correctly" --body " "
+gh pr create --base main --title "fix mass insert problem" --body " "
 ```
 
 ## Code review
