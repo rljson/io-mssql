@@ -32,32 +32,31 @@
     "installConformanceTests": "node scripts/install-conformance-tests.js"
   },
   "devDependencies": {
-    "@types/mssql": "^9.1.9",
-    "@types/node": "^25.0.9",
-    "@typescript-eslint/eslint-plugin": "^8.53.1",
-    "@typescript-eslint/parser": "^8.53.1",
-    "@vitest/coverage-v8": "^4.0.17",
+    "@types/mssql": "^12.3.0",
+    "@types/node": "^26.0.0",
+    "@typescript-eslint/eslint-plugin": "^8.61.1",
+    "@typescript-eslint/parser": "^8.61.1",
+    "@vitest/coverage-v8": "^4.1.9",
     "cross-env": "^10.1.0",
-    "eslint": "^9.39.2",
-    "eslint-plugin-jsdoc": "^62.3.0",
-    "eslint-plugin-tsdoc": "^0.5.0",
-    "globals": "^17.0.0",
+    "eslint": "^10.5.0",
+    "eslint-plugin-jsdoc": "^63.0.7",
+    "eslint-plugin-tsdoc": "^0.5.2",
+    "globals": "^17.6.0",
     "jsdoc": "^4.0.5",
-    "read-pkg": "^10.0.0",
+    "read-pkg": "^10.1.0",
     "typescript": "~5.9.3",
-    "typescript-eslint": "^8.53.1",
-    "vite": "^7.3.1",
-    "vite-plugin-dts": "^4.5.4",
-    "vite-tsconfig-paths": "^6.0.4",
-    "vitest": "^4.0.17"
+    "typescript-eslint": "^8.61.1",
+    "vite": "^8.0.16",
+    "vite-plugin-dts": "^5.0.2",
+    "vitest": "^4.1.9"
   },
   "dependencies": {
     "@rljson/hash": "^0.0.18",
-    "@rljson/io": "^0.0.64",
+    "@rljson/io": "^0.0.69",
     "@rljson/is-ready": "^0.0.17",
     "@rljson/json": "^0.0.23",
-    "@rljson/rljson": "^0.0.74",
-    "mssql": "^12.2.0"
+    "@rljson/rljson": "^0.0.79",
+    "mssql": "^12.5.5"
   },
   "pnpm": {
     "onlyBuiltDependencies": [

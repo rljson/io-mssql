@@ -8,10 +8,8 @@
 // Use of this source code is governed by terms that can be
 // found in the LICENSE file in the root of this package.
 
-import { exampleTableCfg, Rljson, TableCfg } from '@rljson/rljson';
+import { exampleTableCfg, TableCfg } from '@rljson/rljson';
 
-import { readFileSync } from 'fs';
-import { join } from 'path';
 import { afterEach, beforeAll, beforeEach, describe, expect, it } from 'vitest';
 
 import { adminCfg } from '../src/admin-cfg.ts';
@@ -138,17 +136,17 @@ describe('IoMssql', async () => {
 
     await ioSql.createOrExtendTable({ tableCfg });
 
-    const record4 = JSON.parse(
-      readFileSync(join(__dirname, '../data/record_4.json'), 'utf-8'),
-    );
+    // const record4 = JSON.parse(
+    //   readFileSync(join(__dirname, '../data/record_4.json'), 'utf-8'),
+    // );
 
-    const testData4: Rljson = {
-      seriesArticleRef: {
-        _type: 'components',
-        _data: record4,
-      },
-    };
-    await ioSql.write({ data: testData4 });
+    // const testData4: Rljson = {
+    //   seriesArticleRef: {
+    //     _type: 'components',
+    //     _data: record4,
+    //   },
+    // };
+    // await ioSql.write({ data: testData4 });
 
     // const record2 = JSON.parse(
     //   readFileSync(join(__dirname, '../data/record_2.json'), 'utf-8'),

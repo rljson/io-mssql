@@ -65,12 +65,16 @@ export class CatalogTo {
           tableCfg: tableCfg as TableCfg,
         });
       } catch (e) {
-        const error = e instanceof Error ? e : new Error(String(e));
+        const error = this._normalizeError(e);
         console.log(tableCfg.key, error.message);
         throw error;
       }
     }
     return 'Tables created/extended';
+  }
+
+  private static _normalizeError(e: unknown): Error {
+    return e instanceof Error ? e : new Error(String(e));
   }
 
   private static async _insertData(
@@ -100,7 +104,7 @@ export class CatalogTo {
             },
           });
         } catch (e) {
-          const error = e instanceof Error ? e : new Error(String(e));
+          const error = this._normalizeError(e);
           console.log(tableKey, error.message);
           // throw error;
         }
