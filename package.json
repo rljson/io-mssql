@@ -24,6 +24,8 @@
   "type": "module",
   "scripts": {
     "build": "pnpm vite build && tsc && node scripts/copy-readme-to-dist.js",
+    "build:cli": "node scripts/build-cli.js",
+    "build:exe": "node scripts/build-cli.js && node scripts/build-exe.js",
     "test": "pnpm installConformanceTests && pnpm vitest --coverage --no-file-parallelism --run  && pnpm run lint",
     "prebuild": "pnpm run test",
     "prepublishOnly": "pnpm run build",
@@ -33,6 +35,8 @@
   },
   "devDependencies": {
     "@types/mssql": "^12.3.0",
+    "esbuild": "^0.27.0",
+    "postject": "^1.0.0-alpha.6",
     "@types/node": "^26.0.0",
     "@typescript-eslint/eslint-plugin": "^8.61.1",
     "@typescript-eslint/parser": "^8.61.1",

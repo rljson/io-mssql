@@ -136,32 +136,6 @@ describe('IoMssql', async () => {
 
     await ioSql.createOrExtendTable({ tableCfg });
 
-    // const record4 = JSON.parse(
-    //   readFileSync(join(__dirname, '../data/record_4.json'), 'utf-8'),
-    // );
-
-    // const testData4: Rljson = {
-    //   seriesArticleRef: {
-    //     _type: 'components',
-    //     _data: record4,
-    //   },
-    // };
-    // await ioSql.write({ data: testData4 });
-
-    // const record2 = JSON.parse(
-    //   readFileSync(join(__dirname, '../data/record_2.json'), 'utf-8'),
-    // );
-
-    // const testData2: Rljson = {
-    //   arrayTestTable: {
-    //     _type: 'components',
-    //     _data: record2,
-    //   },
-    // };
-    // await ioSql.write({ data: testData2 });
-
-    // await ioSql.write({ data: testData2 });
-
     expect(1).toEqual(1);
   });
 });

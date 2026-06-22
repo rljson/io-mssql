@@ -157,6 +157,3 @@ describe('CatalogTo', () => {
     });
   });
 });
-// it('should import into SQLite database', async () => {
-//   await expect(CatalogTo.sqliteDb('outputcatalog.json')).resolves.toBe('OK');
-// });
