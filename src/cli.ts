@@ -4,12 +4,13 @@
 // Use of this source code is governed by terms that can be
 // found in the LICENSE file in the root of this package.
 
+import { TableCfg } from '@rljson/rljson';
+
+import sql from 'mssql';
 import { existsSync, readFileSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
+import { fileURLToPath } from 'node:url';
 import { parseArgs } from 'node:util';
-
-import { TableCfg } from '@rljson/rljson';
-import sql from 'mssql';
 
 import { DbBasics } from './db-basics.ts';
 import { IoMssql } from './io-mssql.ts';
@@ -65,8 +66,12 @@ async function runCatalog(
   const filePath = resolve(process.cwd(), args[0]);
   if (!existsSync(filePath)) throw new Error(`File not found: ${filePath}`);
 
-  const catalogData = JSON.parse(readFileSync(filePath, 'utf-8')) as Record<string, any>;
-  const dbName     = baseConfig.database ?? 'db_' + basename(args[0]).replace(/\.json$/i, '');
+  const catalogData = JSON.parse(readFileSync(filePath, 'utf-8')) as Record<
+    string,
+    any
+  >;
+  const dbName =
+    baseConfig.database ?? 'db_' + basename(args[0]).replace(/\.json$/i, '');
   const schemaName = schema ?? 'main';
 
   // Create database + schema via a master connection
@@ -90,7 +95,7 @@ async function runCatalog(
 
     // Insert data for each table
     for (const tableCfg of tableCfgs) {
-      const tableKey  = tableCfg.key;
+      const tableKey = tableCfg.key;
       const tableData = catalogData[tableKey]?.['_data'] ?? [];
       if (tableData.length === 0) continue;
       await io.write({
@@ -101,21 +106,33 @@ async function runCatalog(
     await io.close();
   }
 
-  console.log(JSON.stringify({ database: dbName, schema: schemaName, status: 'OK' }, null, 2));
+  console.log(
+    JSON.stringify(
+      { database: dbName, schema: schemaName, status: 'OK' },
+      null,
+      2,
+    ),
+  );
 }
 
-async function main(): Promise<void> {
+async function main(argv: string[] = process.argv.slice(2)): Promise<void> {
   const { values: opts, positionals } = parseArgs({
-    args: process.argv.slice(2),
+    args: argv,
     options: {
-      server:   { type: 'string',  default: process.env['MSSQL_SERVER']   ?? 'localhost' },
-      database: { type: 'string',  default: process.env['MSSQL_DATABASE'] },
-      user:     { type: 'string',  default: process.env['MSSQL_USER']     ?? 'sa' },
-      password: { type: 'string',  default: process.env['MSSQL_PASSWORD'] ?? 'Password123!' },
-      port:     { type: 'string',  default: process.env['MSSQL_PORT']     ?? '1431' },
-      schema:   { type: 'string',  default: process.env['MSSQL_SCHEMA'] },
-      encrypt:  { type: 'boolean', default: false },
-      help:     { type: 'boolean', short: 'h', default: false },
+      server: {
+        type: 'string',
+        default: process.env['MSSQL_SERVER'] ?? 'localhost',
+      },
+      database: { type: 'string', default: process.env['MSSQL_DATABASE'] },
+      user: { type: 'string', default: process.env['MSSQL_USER'] ?? 'sa' },
+      password: {
+        type: 'string',
+        default: process.env['MSSQL_PASSWORD'] ?? 'Password123!',
+      },
+      port: { type: 'string', default: process.env['MSSQL_PORT'] ?? '1431' },
+      schema: { type: 'string', default: process.env['MSSQL_SCHEMA'] },
+      encrypt: { type: 'boolean', default: false },
+      help: { type: 'boolean', short: 'h', default: false },
     },
     allowPositionals: true,
   });
@@ -126,11 +143,12 @@ async function main(): Promise<void> {
   }
 
   const baseConfig: sql.config = {
-    server:   opts.server!,
+    server: opts.server!,
     database: opts.database,
-    user:     opts.user,
+    user: opts.user,
     password: opts.password,
-    port:     Number(opts.port ?? '1433'),
+    /* v8 ignore next -- parseArgs always sets port default */
+    port: Number(opts.port ?? '1433'),
     options: {
       encrypt: opts.encrypt,
       trustServerCertificate: true,
@@ -199,7 +217,10 @@ async function main(): Promise<void> {
         if (!args[0] || !args[1]) {
           throw new Error('read-rows requires <table> <whereJson>');
         }
-        result = await io.readRows({ table: args[0], where: JSON.parse(args[1]) });
+        result = await io.readRows({
+          table: args[0],
+          where: JSON.parse(args[1]),
+        });
         break;
       }
 
@@ -224,7 +245,12 @@ async function main(): Promise<void> {
   }
 }
 
-main().catch((e) => {
-  console.error('Error:', e instanceof Error ? e.message : String(e));
-  process.exit(1);
-});
+export { main, readStdin };
+
+/* v8 ignore next 5 */
+if (process.argv[1] === fileURLToPath(import.meta.url)) {
+  main().catch((e) => {
+    console.error('Error:', e instanceof Error ? e.message : String(e));
+    process.exit(1);
+  });
+}

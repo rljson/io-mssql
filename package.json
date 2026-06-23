@@ -35,22 +35,22 @@
   },
   "devDependencies": {
     "@types/mssql": "^12.3.0",
-    "esbuild": "^0.27.0",
-    "postject": "^1.0.0-alpha.6",
     "@types/node": "^26.0.0",
-    "@typescript-eslint/eslint-plugin": "^8.61.1",
-    "@typescript-eslint/parser": "^8.61.1",
+    "@typescript-eslint/eslint-plugin": "^8.62.0",
+    "@typescript-eslint/parser": "^8.62.0",
     "@vitest/coverage-v8": "^4.1.9",
     "cross-env": "^10.1.0",
+    "esbuild": "^0.28.1",
     "eslint": "^10.5.0",
     "eslint-plugin-jsdoc": "^63.0.7",
     "eslint-plugin-tsdoc": "^0.5.2",
-    "globals": "^17.6.0",
+    "globals": "^17.7.0",
     "jsdoc": "^4.0.5",
+    "postject": "1.0.0-alpha.6",
     "read-pkg": "^10.1.0",
-    "typescript": "~5.9.3",
-    "typescript-eslint": "^8.61.1",
-    "vite": "^8.0.16",
+    "typescript": "~6.0.3",
+    "typescript-eslint": "^8.62.0",
+    "vite": "^8.1.0",
     "vite-plugin-dts": "^5.0.2",
     "vitest": "^4.1.9"
   },
@@ -60,9 +60,12 @@
     "@rljson/is-ready": "^0.0.17",
     "@rljson/json": "^0.0.23",
     "@rljson/rljson": "^0.0.79",
-    "mssql": "^12.5.5"
+    "mssql": "^12.6.0"
   },
   "pnpm": {
+    "overrides": {
+      "eslint-plugin-tsdoc>@typescript-eslint/utils": "~8.61.1"
+    },
     "onlyBuiltDependencies": [
       "esbuild"
     ]
