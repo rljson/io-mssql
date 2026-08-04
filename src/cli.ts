@@ -248,7 +248,7 @@ async function main(argv: string[] = process.argv.slice(2)): Promise<void> {
 
 export { main, readStdin };
 
-/* v8 ignore next 9 */
+/* v8 ignore next 6 */
 let isMain = true;
 try {
   isMain = process.argv[1] === fileURLToPath(import.meta.url);
@@ -256,6 +256,7 @@ try {
   // import.meta.url is unavailable inside a Node.js SEA snapshot (the .exe
   // build) — in that context this module is always the entry point.
 }
+/* v8 ignore next 8 */
 if (isMain) {
   main().catch((e) => {
     console.error(

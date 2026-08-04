@@ -138,4 +138,74 @@ describe('IoMssql', async () => {
 
     expect(1).toEqual(1);
   });
+
+  it('casts values to the type declared by the number and string columns', async () => {
+    const tableName = 'coerceNumberTable';
+    const exampleCfg: TableCfg = exampleTableCfg({ key: tableName });
+    const tableCfg: TableCfg = {
+      ...exampleCfg,
+      columns: [
+        { key: '_hash', type: 'string', titleShort: '_hash', titleLong: 'Hash' },
+        { key: 'value', type: 'number', titleShort: 'value', titleLong: 'value' },
+        { key: 'label', type: 'string', titleShort: 'label', titleLong: 'label' },
+      ],
+    };
+    await ioSql.createOrExtendTable({ tableCfg });
+
+    await ioSql.write({
+      data: {
+        [tableName]: {
+          _type: 'components',
+          _data: [
+            { value: '42', label: 'already-string' },
+            { value: 'not-a-number', label: 25 },
+          ],
+        },
+      },
+    });
+
+    const result = await ioSql.readRows({ table: tableName, where: {} });
+    const rows = result[tableName]._data as any[];
+    const byLabel = (label: string) => rows.find((r) => r.label === label);
+
+    expect(byLabel('already-string').value).toBe(42);
+    expect(byLabel('25').value == null).toBe(true);
+  });
+
+  it('casts values to the type declared by the boolean column', async () => {
+    const tableName = 'coerceBooleanTable';
+    const exampleCfg: TableCfg = exampleTableCfg({ key: tableName });
+    const tableCfg: TableCfg = {
+      ...exampleCfg,
+      columns: [
+        { key: '_hash', type: 'string', titleShort: '_hash', titleLong: 'Hash' },
+        { key: 'flag', type: 'boolean', titleShort: 'flag', titleLong: 'flag' },
+        { key: 'tag', type: 'string', titleShort: 'tag', titleLong: 'tag' },
+      ],
+    };
+    await ioSql.createOrExtendTable({ tableCfg });
+
+    await ioSql.write({
+      data: {
+        [tableName]: {
+          _type: 'components',
+          _data: [
+            { flag: 'TRUE', tag: 'a' },
+            { flag: 'false', tag: 'b' },
+            { flag: 'maybe', tag: 'c' },
+            { flag: 1, tag: 'd' },
+          ],
+        },
+      },
+    });
+
+    const result = await ioSql.readRows({ table: tableName, where: {} });
+    const rows = result[tableName]._data as any[];
+    const byTag = (tag: string) => rows.find((r) => r.tag === tag);
+
+    expect(byTag('a').flag).toBe(true);
+    expect(byTag('b').flag).toBe(false);
+    expect(byTag('c').flag == null).toBe(true);
+    expect(byTag('d').flag).toBe(true);
+  });
 });

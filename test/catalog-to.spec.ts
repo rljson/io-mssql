@@ -7,6 +7,7 @@
 import { describe, expect, it, vi } from 'vitest';
 
 import { CatalogTo } from '../src/catalog-to';
+import { IoMssql } from '../src/io-mssql';
 
 describe('CatalogTo', () => {
   describe('_normalizeError', () => {
@@ -153,6 +154,26 @@ describe('CatalogTo', () => {
       const consoleLogSpy = vi.spyOn(console, 'log');
       const result = await CatalogTo.mssqlDb('minimal-catalog.json');
       expect(result).toBe('OK');
+      consoleLogSpy.mockRestore();
+    });
+
+    it('logs the tableKey and error message when write() rejects for a table', async () => {
+      // Forces a genuine write() failure (rather than relying on incidental
+      // data shape) to exercise the catch block in _insertData directly.
+      const writeSpy = vi
+        .spyOn(IoMssql.prototype, 'write')
+        .mockRejectedValueOnce(new Error('simulated write failure'));
+      const consoleLogSpy = vi.spyOn(console, 'log');
+
+      const result = await CatalogTo.mssqlDb('minimal-catalog.json');
+
+      expect(result).toBe('OK');
+      expect(consoleLogSpy).toHaveBeenCalledWith(
+        'smallTable',
+        'simulated write failure',
+      );
+
+      writeSpy.mockRestore();
       consoleLogSpy.mockRestore();
     });
   });

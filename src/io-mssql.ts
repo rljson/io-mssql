@@ -165,9 +165,10 @@ export class IoMssql implements Io {
   }
 
   async write(request: { data: Rljson }): Promise<void> {
-    const hashedData = hsh(request.data);
-
     await this._ioTools.throwWhenTablesDoNotExist(request.data);
+    await this._coerceDataToTableCfgTypes(request.data);
+
+    const hashedData = hsh(request.data);
     await this._ioTools.throwWhenTableDataDoesNotMatchCfg(request.data);
 
     await iterateTables(hashedData, async (tableName, tableData) => {
@@ -245,6 +246,53 @@ export class IoMssql implements Io {
         );
       }
     });
+  }
+
+  // Casts row values to the type declared for their column, so that e.g. a
+  // number arriving for a string column doesn't fail validation. Values that
+  // cannot be cast to the expected type (e.g. "abc" for a number column) are
+  // set to null rather than rejected.
+  private async _coerceDataToTableCfgTypes(data: Rljson): Promise<void> {
+    await iterateTables(data, async (tableName, tableData) => {
+      const tableCfg = await this._ioTools.tableCfg(tableName);
+      for (const row of tableData._data) {
+        for (const column of tableCfg.columns) {
+          const value = (row as Json)[column.key];
+          if (value === undefined || value === null) continue;
+          (row as Json)[column.key] = this._coerceValue(value, column.type);
+        }
+      }
+    });
+  }
+
+  private _coerceValue(
+    value: JsonValue,
+    expectedType: JsonValueType,
+  ): JsonValue | null {
+    switch (expectedType) {
+      case 'string':
+        return typeof value === 'string' ? value : String(value);
+
+      case 'number': {
+        if (typeof value === 'number') return value;
+        const parsed = Number(value);
+        return Number.isNaN(parsed) ? null : parsed;
+      }
+
+      case 'boolean': {
+        if (typeof value === 'boolean') return value;
+        if (typeof value === 'string') {
+          const lowered = value.trim().toLowerCase();
+          if (lowered === 'true') return true;
+          if (lowered === 'false') return false;
+          return null;
+        }
+        return Boolean(value);
+      }
+
+      default:
+        return value;
+    }
   }
 
   async readRows(request: {
