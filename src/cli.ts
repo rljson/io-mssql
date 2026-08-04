@@ -10,7 +10,7 @@ import sql from 'mssql';
 import { existsSync, readFileSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
 import { fileURLToPath } from 'node:url';
-import { parseArgs } from 'node:util';
+import { inspect, parseArgs } from 'node:util';
 
 import { DbBasics } from './db-basics.ts';
 import { IoMssql } from './io-mssql.ts';
@@ -71,7 +71,8 @@ async function runCatalog(
     any
   >;
   const dbName =
-    baseConfig.database ?? 'db_' + basename(args[0]).replace(/\.json$/i, '');
+    baseConfig.database ??
+    'db_' + basename(args[0]).replace(/\.(rljson|json)$/i, '');
   const schemaName = schema ?? 'main';
 
   // Create database + schema via a master connection
@@ -247,10 +248,20 @@ async function main(argv: string[] = process.argv.slice(2)): Promise<void> {
 
 export { main, readStdin };
 
-/* v8 ignore next 5 */
-if (process.argv[1] === fileURLToPath(import.meta.url)) {
+/* v8 ignore next 9 */
+let isMain = true;
+try {
+  isMain = process.argv[1] === fileURLToPath(import.meta.url);
+} catch {
+  // import.meta.url is unavailable inside a Node.js SEA snapshot (the .exe
+  // build) — in that context this module is always the entry point.
+}
+if (isMain) {
   main().catch((e) => {
-    console.error('Error:', e instanceof Error ? e.message : String(e));
+    console.error(
+      'Error:',
+      e instanceof Error ? e.message : inspect(e, { depth: 5 }),
+    );
     process.exit(1);
   });
 }

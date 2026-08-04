@@ -166,8 +166,6 @@ export class IoMssql implements Io {
 
   async write(request: { data: Rljson }): Promise<void> {
     const hashedData = hsh(request.data);
-    const errorStore = new Map<number, string>();
-    let errorCount = 0;
 
     await this._ioTools.throwWhenTablesDoNotExist(request.data);
     await this._ioTools.throwWhenTableDataDoesNotMatchCfg(request.data);
@@ -175,46 +173,66 @@ export class IoMssql implements Io {
     await iterateTables(hashedData, async (tableName, tableData) => {
       const tableCfg = await this._ioTools.tableCfg(tableName);
       const tableKeyWithSuffix = this._map.addTableSuffix(tableName);
-      const sqlRequest = new sql.Request(this._conn);
       const columnKeys = this._prepareColumnNames(tableCfg.columns);
       const mainQuery = `INSERT INTO ${this._schemaName}.${tableKeyWithSuffix} (${columnKeys}) VALUES `;
-      const placeHolderLine: string[] = [];
-      const placeHolderLines: string[] = [];
       const columnCount = tableCfg.columns.length;
-      let position = 0;
-      for (const row of tableData._data) {
-        const serializedRow = this._serializeRow(row, tableCfg);
-        const stringArray = serializedRow.map((val) =>
-          val === null ? null : String(val),
-        );
 
-        for (let i = position; i < position + stringArray.length; i++) {
-          sqlRequest.input(`p${i}`, stringArray[i - position]);
-          placeHolderLine.push(`@p${i}`);
+      // SQL Server rejects requests with more than 2100 parameters. Batch
+      // rows so that each INSERT stays comfortably under that limit.
+      const maxParamsPerBatch = 2000;
+      const rowsPerBatch = Math.max(
+        1,
+        Math.floor(maxParamsPerBatch / columnCount),
+      );
+
+      const errorStore = new Map<number, string>();
+      let errorCount = 0;
+      const rows = tableData._data;
+
+      for (
+        let batchStart = 0;
+        batchStart < rows.length;
+        batchStart += rowsPerBatch
+      ) {
+        const batchRows = rows.slice(batchStart, batchStart + rowsPerBatch);
+        const sqlRequest = new sql.Request(this._conn);
+        const placeHolderLine: string[] = [];
+        const placeHolderLines: string[] = [];
+        let position = 0;
+        for (const row of batchRows) {
+          const serializedRow = this._serializeRow(row, tableCfg);
+          const stringArray = serializedRow.map((val) =>
+            val === null ? null : String(val),
+          );
+
+          for (let i = position; i < position + stringArray.length; i++) {
+            sqlRequest.input(`p${i}`, stringArray[i - position]);
+            placeHolderLine.push(`@p${i}`);
+          }
+          placeHolderLines.push(`(${placeHolderLine.join(', ')})`);
+          placeHolderLine.length = 0;
+
+          position += columnCount;
         }
-        placeHolderLines.push(`(${placeHolderLine.join(', ')})`);
-        placeHolderLine.length = 0;
+        try {
+          await sqlRequest.query(mainQuery + placeHolderLines.join(', '));
+        } catch (error) {
+          /* v8 ignore next -- @preserve */
+          if ((error as any).number === 2627) {
+            return;
+          }
+          /* v8 ignore next -- @preserve */
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error';
+          /* v8 ignore next -- @preserve */
 
-        position += columnCount;
-      }
-      try {
-        await sqlRequest.query(mainQuery + placeHolderLines.join(', '));
-      } catch (error) {
-        /* v8 ignore next -- @preserve */
-        if ((error as any).number === 2627) {
-          return;
+          errorCount++;
+          errorStore.set(
+            errorCount,
+            `Error inserting into table ${tableName}: ${errorMessage}`,
+          );
+          /* v8 ignore end */
         }
-        /* v8 ignore next -- @preserve */
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error';
-        /* v8 ignore next -- @preserve */
-
-        errorCount++;
-        errorStore.set(
-          errorCount,
-          `Error inserting into table ${tableName}: ${errorMessage}`,
-        );
-        /* v8 ignore end */
       }
 
       /* v8 ignore next -- @preserve */
