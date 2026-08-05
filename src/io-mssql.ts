@@ -166,7 +166,10 @@ export class IoMssql implements Io {
 
   async write(request: { data: Rljson }): Promise<void> {
     await this._ioTools.throwWhenTablesDoNotExist(request.data);
-    await this._coerceDataToTableCfgTypes(request.data);
+    // Disabled for now — see _coerceDataToTableCfgTypes/_coerceValue.
+    // Referenced (not called) below purely to keep noUnusedLocals happy.
+    // await this._coerceDataToTableCfgTypes(request.data);
+    void this._coerceDataToTableCfgTypes;
 
     const hashedData = hsh(request.data);
     await this._ioTools.throwWhenTableDataDoesNotMatchCfg(request.data);
@@ -252,14 +255,29 @@ export class IoMssql implements Io {
   // number arriving for a string column doesn't fail validation. Values that
   // cannot be cast to the expected type (e.g. "abc" for a number column) are
   // set to null rather than rejected.
+  //
+  // A row's incoming _hash was computed over its original, un-coerced
+  // values, so it necessarily goes stale the moment we change one of those
+  // values. Dropping it here lets hsh() (called right after this) compute a
+  // fresh hash instead of rejecting the row for "not matching" a hash that
+  // described different content. Rows that end up unchanged keep their
+  // original hash, so genuinely corrupted input is still caught.
   private async _coerceDataToTableCfgTypes(data: Rljson): Promise<void> {
     await iterateTables(data, async (tableName, tableData) => {
       const tableCfg = await this._ioTools.tableCfg(tableName);
       for (const row of tableData._data) {
+        let mutated = false;
         for (const column of tableCfg.columns) {
           const value = (row as Json)[column.key];
           if (value === undefined || value === null) continue;
-          (row as Json)[column.key] = this._coerceValue(value, column.type);
+          const coerced = this._coerceValue(value, column.type);
+          if (coerced !== value) {
+            (row as Json)[column.key] = coerced;
+            mutated = true;
+          }
+        }
+        if (mutated) {
+          delete (row as Json)['_hash'];
         }
       }
     });
