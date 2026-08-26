@@ -35,10 +35,14 @@ describe('CatalogTo', () => {
   });
 
   describe('mssqlDb', () => {
-    it('should import into MSSQL database successfully', async () => {
-      const result = await CatalogTo.mssqlDb('outputcatalog.json');
-      expect(result).toBe('OK');
-    });
+    it(
+      'should import into MSSQL database successfully',
+      async () => {
+        const result = await CatalogTo.mssqlDb('outputcatalog.json');
+        expect(result).toBe('OK');
+      },
+      30000,
+    );
 
     it('should handle non-existent catalog file gracefully', async () => {
       await expect(
