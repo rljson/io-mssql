@@ -355,6 +355,14 @@ describe('CLI', () => {
       await withFakeStdin(writeData, () => main([...DB_ARGS, 'write']));
       expect(logSpy).toHaveBeenCalledWith('"OK"');
     });
+
+    it('throws when stdin is empty', async () => {
+      await withFakeStdin('', () =>
+        expect(main([...DB_ARGS, 'write', '-'])).rejects.toThrow(
+          'Empty or invalid JSON input',
+        ),
+      );
+    });
   });
 
   // ── read-rows ─────────────────────────────────────────────────────────────

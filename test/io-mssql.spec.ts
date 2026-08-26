@@ -257,4 +257,138 @@ describe('IoMssql', async () => {
     expect(rows[0].seriesNo).toBe('25');
     expect(rows[0]._hash).not.toBe(rowWithStaleHash._hash);
   });
+
+  // write() doesn't call these yet (see the it.skip tests above), so they're
+  // exercised directly here to keep the coercion logic itself covered.
+  describe('_coerceValue', () => {
+    it('casts a non-string value to a string for string columns', () => {
+      expect((ioSql as any)._coerceValue(42, 'string')).toBe('42');
+      expect((ioSql as any)._coerceValue('already', 'string')).toBe('already');
+    });
+
+    it('casts a numeric string to a number, and an unparsable one to null', () => {
+      expect((ioSql as any)._coerceValue('42', 'number')).toBe(42);
+      expect((ioSql as any)._coerceValue(42, 'number')).toBe(42);
+      expect((ioSql as any)._coerceValue('not-a-number', 'number')).toBe(null);
+    });
+
+    it('casts recognized strings to booleans, and an ambiguous one to null', () => {
+      expect((ioSql as any)._coerceValue('TRUE', 'boolean')).toBe(true);
+      expect((ioSql as any)._coerceValue('false', 'boolean')).toBe(false);
+      expect((ioSql as any)._coerceValue('maybe', 'boolean')).toBe(null);
+      expect((ioSql as any)._coerceValue(true, 'boolean')).toBe(true);
+      expect((ioSql as any)._coerceValue(1, 'boolean')).toBe(true);
+    });
+
+    it('returns unsupported (complex) types unchanged', () => {
+      const value = { nested: true };
+      expect((ioSql as any)._coerceValue(value, 'json')).toBe(value);
+    });
+  });
+
+  describe('_coerceDataToTableCfgTypes', () => {
+    it('coerces row values to their column type and drops the stale hash', async () => {
+      const tableName = 'coerceDirectTable';
+      const exampleCfg: TableCfg = exampleTableCfg({ key: tableName });
+      const tableCfg: TableCfg = {
+        ...exampleCfg,
+        columns: [
+          {
+            key: '_hash',
+            type: 'string',
+            titleShort: '_hash',
+            titleLong: 'Hash',
+          },
+          {
+            key: 'value',
+            type: 'number',
+            titleShort: 'value',
+            titleLong: 'value',
+          },
+        ],
+      };
+      await ioSql.createOrExtendTable({ tableCfg });
+
+      const row: any = { value: '42', _hash: 'stale' };
+      const data: any = {
+        [tableName]: { _type: 'components', _data: [row] },
+      };
+
+      await (ioSql as any)._coerceDataToTableCfgTypes(data);
+
+      expect(row.value).toBe(42);
+      expect(row._hash).toBeUndefined();
+    });
+
+    it('leaves a row untouched when nothing needs coercion', async () => {
+      const tableName = 'coerceDirectNoopTable';
+      const exampleCfg: TableCfg = exampleTableCfg({ key: tableName });
+      const tableCfg: TableCfg = {
+        ...exampleCfg,
+        columns: [
+          {
+            key: '_hash',
+            type: 'string',
+            titleShort: '_hash',
+            titleLong: 'Hash',
+          },
+          {
+            key: 'value',
+            type: 'number',
+            titleShort: 'value',
+            titleLong: 'value',
+          },
+        ],
+      };
+      await ioSql.createOrExtendTable({ tableCfg });
+
+      const row: any = { value: 42, _hash: 'unchanged' };
+      const data: any = {
+        [tableName]: { _type: 'components', _data: [row] },
+      };
+
+      await (ioSql as any)._coerceDataToTableCfgTypes(data);
+
+      expect(row.value).toBe(42);
+      expect(row._hash).toBe('unchanged');
+    });
+
+    it('ignores undefined and null values on a row', async () => {
+      const tableName = 'coerceDirectNullTable';
+      const exampleCfg: TableCfg = exampleTableCfg({ key: tableName });
+      const tableCfg: TableCfg = {
+        ...exampleCfg,
+        columns: [
+          {
+            key: '_hash',
+            type: 'string',
+            titleShort: '_hash',
+            titleLong: 'Hash',
+          },
+          {
+            key: 'value',
+            type: 'number',
+            titleShort: 'value',
+            titleLong: 'value',
+          },
+          {
+            key: 'label',
+            type: 'string',
+            titleShort: 'label',
+            titleLong: 'label',
+          },
+        ],
+      };
+      await ioSql.createOrExtendTable({ tableCfg });
+
+      const row: any = { value: undefined, label: null, _hash: 'unchanged' };
+      const data: any = {
+        [tableName]: { _type: 'components', _data: [row] },
+      };
+
+      await (ioSql as any)._coerceDataToTableCfgTypes(data);
+
+      expect(row._hash).toBe('unchanged');
+    });
+  });
 });
