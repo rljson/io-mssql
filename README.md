@@ -10,9 +10,10 @@ found in the LICENSE file in the root of this package.
 
 ## Users
 
-| File                                 | Purpose                     |
-| ------------------------------------ | --------------------------- |
-| [README.public.md](README.public.md) | Install and use the package |
+| File                                   | Purpose                     |
+| -------------------------------------- | --------------------------- |
+| [README.public.md](README.public.md)   | Install and use the package |
+| [README.exeusage.md](README.exeusage.md) | CLI exe usage with examples |
 
 ## Contributors
 

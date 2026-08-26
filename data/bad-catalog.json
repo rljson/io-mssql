@@ -1,0 +1,11 @@
+{
+  "tableCfgs": {
+    "_type": "components",
+    "_data": [
+      {
+        "key": "badTable",
+        "columns": null
+      }
+    ]
+  }
+}
