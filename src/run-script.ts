@@ -5,8 +5,20 @@ export async function runScript(
   script: string,
   dbName: string,
 ): Promise<string[]> {
-  // Connect to SQL Server
-  const pool: sql.ConnectionPool = await sql.connect(config);
+  // A dedicated pool, not the package's `sql.connect(config)` global
+  // helper: that helper lazily creates (at most) ONE shared, module-level
+  // pool and reuses it across every caller regardless of config, and
+  // every caller's own `pool.close()` call closes THAT SAME shared pool.
+  // Two overlapping runScript() calls sharing it means whichever finishes
+  // first closes the pool out from under the other one, which is still
+  // mid-batch on it -- observed as queries against an already-closing
+  // connection, timeouts, and error-listener accumulation on the reused
+  // pool object under real concurrent load. A dedicated pool per call
+  // sidesteps all of that: each call only ever closes the one connection
+  // it opened itself.
+  const pool: sql.ConnectionPool = await new sql.ConnectionPool(
+    config,
+  ).connect();
 
   // Handle empty script
   if (script.trim().length === 0) {

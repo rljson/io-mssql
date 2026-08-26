@@ -105,4 +105,24 @@ afterAll(async () => {
     const values = result.map((r) => JSON.parse(r as string).RESULT);
     expect(values).toEqual([1, 2, 3]);
   });
+
+  it('supports two overlapping calls without one closing the connection the other is still using', async () => {
+    // Regression test: runScript() used to connect via the mssql package's
+    // `sql.connect()` global-pool helper, which lazily creates (at most)
+    // ONE shared, module-level pool and hands it back to every caller --
+    // and every caller's own `pool.close()` closed THAT SAME shared pool.
+    // The slower call here (a WAITFOR DELAY) used to get its connection
+    // closed out from under it the moment the faster call finished and
+    // closed "its" pool, well before the slow call was done with it.
+    const slowScript = "WAITFOR DELAY '00:00:01'; SELECT 1 AS RESULT";
+    const fastScript = 'SELECT 2 AS RESULT';
+
+    const [slowResult, fastResult] = await Promise.all([
+      runScript(adminCfg, slowScript, testDb),
+      runScript(adminCfg, fastScript, testDb),
+    ]);
+
+    expect(JSON.parse(slowResult[slowResult.length - 1] as string).RESULT).toBe(1);
+    expect(JSON.parse(fastResult[0] as string).RESULT).toBe(2);
+  });
 });
