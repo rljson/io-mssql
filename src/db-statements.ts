@@ -9,7 +9,10 @@ export class DbStatements {
   private _map = new IoDbNameMapping();
   // ********************************************************************
   // Initialization needs the schema name
-  constructor(public schemaName: string, mainSchema: string = 'main') {
+  constructor(
+    public schemaName: string,
+    mainSchema: string = 'main',
+  ) {
     this._mainSchema = mainSchema;
   }
 
@@ -204,7 +207,7 @@ export class DbStatements {
   }
 
   public selection(tableKey: string, columns: string, whereClause: string) {
-    return `SELECT ${columns} FROM ${tableKey} WHERE ${whereClause}`;
+    return `SELECT ${columns} FROM [${this.schemaName}].[${this._map.addTableSuffix(tableKey)}] WHERE ${whereClause}`;
   }
 
   public allData(tableKey: string, namedColumns?: string) {
@@ -217,6 +220,10 @@ export class DbStatements {
   }
 
   public whereString(whereClause: [string, JsonValue][]): string {
+    if (whereClause.length === 0) {
+      return '1=1'; // No conditions means "always true" - select all rows
+    }
+
     let constraint: string = ' ';
     for (const [column, value] of whereClause) {
       const columnWithFix = this._map.addColumnSuffix(column);

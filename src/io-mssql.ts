@@ -165,56 +165,78 @@ export class IoMssql implements Io {
   }
 
   async write(request: { data: Rljson }): Promise<void> {
-    const hashedData = hsh(request.data);
-    const errorStore = new Map<number, string>();
-    let errorCount = 0;
-
     await this._ioTools.throwWhenTablesDoNotExist(request.data);
+    // Disabled for now — see _coerceDataToTableCfgTypes/_coerceValue.
+    // Referenced (not called) below purely to keep noUnusedLocals happy.
+    // await this._coerceDataToTableCfgTypes(request.data);
+    void this._coerceDataToTableCfgTypes;
+
+    const hashedData = hsh(request.data);
     await this._ioTools.throwWhenTableDataDoesNotMatchCfg(request.data);
 
     await iterateTables(hashedData, async (tableName, tableData) => {
       const tableCfg = await this._ioTools.tableCfg(tableName);
       const tableKeyWithSuffix = this._map.addTableSuffix(tableName);
-      const sqlRequest = new sql.Request(this._conn);
       const columnKeys = this._prepareColumnNames(tableCfg.columns);
       const mainQuery = `INSERT INTO ${this._schemaName}.${tableKeyWithSuffix} (${columnKeys}) VALUES `;
-      const placeHolderLine: string[] = [];
-      const placeHolderLines: string[] = [];
       const columnCount = tableCfg.columns.length;
-      let position = 0;
-      for (const row of tableData._data) {
-        const serializedRow = this._serializeRow(row, tableCfg);
-        const stringArray = serializedRow.map((val) =>
-          val === null ? null : String(val),
-        );
 
-        for (let i = position; i < position + stringArray.length; i++) {
-          sqlRequest.input(`p${i}`, stringArray[i - position]);
-          placeHolderLine.push(`@p${i}`);
+      // SQL Server rejects requests with more than 2100 parameters. Batch
+      // rows so that each INSERT stays comfortably under that limit.
+      const maxParamsPerBatch = 2000;
+      const rowsPerBatch = Math.max(
+        1,
+        Math.floor(maxParamsPerBatch / columnCount),
+      );
+
+      const errorStore = new Map<number, string>();
+      let errorCount = 0;
+      const rows = tableData._data;
+
+      for (
+        let batchStart = 0;
+        batchStart < rows.length;
+        batchStart += rowsPerBatch
+      ) {
+        const batchRows = rows.slice(batchStart, batchStart + rowsPerBatch);
+        const sqlRequest = new sql.Request(this._conn);
+        const placeHolderLine: string[] = [];
+        const placeHolderLines: string[] = [];
+        let position = 0;
+        for (const row of batchRows) {
+          const serializedRow = this._serializeRow(row, tableCfg);
+          const stringArray = serializedRow.map((val) =>
+            val === null ? null : String(val),
+          );
+
+          for (let i = position; i < position + stringArray.length; i++) {
+            sqlRequest.input(`p${i}`, stringArray[i - position]);
+            placeHolderLine.push(`@p${i}`);
+          }
+          placeHolderLines.push(`(${placeHolderLine.join(', ')})`);
+          placeHolderLine.length = 0;
+
+          position += columnCount;
         }
-        placeHolderLines.push(`(${placeHolderLine.join(', ')})`);
-        placeHolderLine.length = 0;
+        try {
+          await sqlRequest.query(mainQuery + placeHolderLines.join(', '));
+        } catch (error) {
+          /* v8 ignore next -- @preserve */
+          if ((error as any).number === 2627) {
+            return;
+          }
+          /* v8 ignore next -- @preserve */
+          const errorMessage =
+            error instanceof Error ? error.message : 'Unknown error';
+          /* v8 ignore next -- @preserve */
 
-        position += columnCount;
-      }
-      try {
-        await sqlRequest.query(mainQuery + placeHolderLines.join(', '));
-      } catch (error) {
-        /* v8 ignore next -- @preserve */
-        if ((error as any).number === 2627) {
-          return;
+          errorCount++;
+          errorStore.set(
+            errorCount,
+            `Error inserting into table ${tableName}: ${errorMessage}`,
+          );
+          /* v8 ignore end */
         }
-        /* v8 ignore next -- @preserve */
-        const errorMessage =
-          error instanceof Error ? error.message : 'Unknown error';
-        /* v8 ignore next -- @preserve */
-
-        errorCount++;
-        errorStore.set(
-          errorCount,
-          `Error inserting into table ${tableName}: ${errorMessage}`,
-        );
-        /* v8 ignore end */
       }
 
       /* v8 ignore next -- @preserve */
@@ -227,6 +249,68 @@ export class IoMssql implements Io {
         );
       }
     });
+  }
+
+  // Casts row values to the type declared for their column, so that e.g. a
+  // number arriving for a string column doesn't fail validation. Values that
+  // cannot be cast to the expected type (e.g. "abc" for a number column) are
+  // set to null rather than rejected.
+  //
+  // A row's incoming _hash was computed over its original, un-coerced
+  // values, so it necessarily goes stale the moment we change one of those
+  // values. Dropping it here lets hsh() (called right after this) compute a
+  // fresh hash instead of rejecting the row for "not matching" a hash that
+  // described different content. Rows that end up unchanged keep their
+  // original hash, so genuinely corrupted input is still caught.
+  private async _coerceDataToTableCfgTypes(data: Rljson): Promise<void> {
+    await iterateTables(data, async (tableName, tableData) => {
+      const tableCfg = await this._ioTools.tableCfg(tableName);
+      for (const row of tableData._data) {
+        let mutated = false;
+        for (const column of tableCfg.columns) {
+          const value = (row as Json)[column.key];
+          if (value === undefined || value === null) continue;
+          const coerced = this._coerceValue(value, column.type);
+          if (coerced !== value) {
+            (row as Json)[column.key] = coerced;
+            mutated = true;
+          }
+        }
+        if (mutated) {
+          delete (row as Json)['_hash'];
+        }
+      }
+    });
+  }
+
+  private _coerceValue(
+    value: JsonValue,
+    expectedType: JsonValueType,
+  ): JsonValue | null {
+    switch (expectedType) {
+      case 'string':
+        return typeof value === 'string' ? value : String(value);
+
+      case 'number': {
+        if (typeof value === 'number') return value;
+        const parsed = Number(value);
+        return Number.isNaN(parsed) ? null : parsed;
+      }
+
+      case 'boolean': {
+        if (typeof value === 'boolean') return value;
+        if (typeof value === 'string') {
+          const lowered = value.trim().toLowerCase();
+          if (lowered === 'true') return true;
+          if (lowered === 'false') return false;
+          return null;
+        }
+        return Boolean(value);
+      }
+
+      default:
+        return value;
+    }
   }
 
   async readRows(request: {

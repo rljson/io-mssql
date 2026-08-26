@@ -1,0 +1,74 @@
+{
+  "tableCfgs": {
+    "_type": "components",
+    "_data": [
+      {
+        "key": "smallTable",
+        "columns": [
+          {
+            "key": "_hash",
+            "type": "string",
+            "titleLong": "Hash",
+            "titleShort": "Hash"
+          },
+          {
+            "key": "name",
+            "type": "string",
+            "titleLong": "Name",
+            "titleShort": "Name"
+          }
+        ]
+      },
+      {
+        "key": "emptyTable",
+        "columns": [
+          {
+            "key": "_hash",
+            "type": "string",
+            "titleLong": "Hash",
+            "titleShort": "Hash"
+          },
+          {
+            "key": "value",
+            "type": "string",
+            "titleLong": "Value",
+            "titleShort": "Value"
+          }
+        ]
+      },
+      {
+        "key": "missingDataTable",
+        "columns": [
+          {
+            "key": "_hash",
+            "type": "string",
+            "titleLong": "Hash",
+            "titleShort": "Hash"
+          },
+          {
+            "key": "value",
+            "type": "string",
+            "titleLong": "Value",
+            "titleShort": "Value"
+          }
+        ]
+      }
+    ]
+  },
+  "smallTable": {
+    "_type": "components",
+    "_data": [
+      {
+        "_hash": "fZ_SBR_DKzL-qxCUb6truR",
+        "name": "test"
+      }
+    ]
+  },
+  "emptyTable": {
+    "_type": "components",
+    "_data": []
+  },
+  "missingDataTable": {
+    "_type": "components"
+  }
+}

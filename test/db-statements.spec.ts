@@ -189,7 +189,9 @@ describe('DbStatements', () => {
       'foo_col,bar_col',
       'foo_col = 1',
     );
-    expect(sql).toBe('SELECT foo_col,bar_col FROM mytable WHERE foo_col = 1');
+    expect(sql).toBe(
+      'SELECT foo_col,bar_col FROM [myschema].[mytable_tbl] WHERE foo_col = 1',
+    );
   });
 
   it('should generate correct alterTable SQL statements', () => {
