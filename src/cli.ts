@@ -7,10 +7,12 @@
 import { TableCfg } from '@rljson/rljson';
 
 import sql from 'mssql';
-import { existsSync, readFileSync } from 'node:fs';
+import { createReadStream, existsSync } from 'node:fs';
 import { basename, resolve } from 'node:path';
+import type { Readable } from 'node:stream';
 import { fileURLToPath } from 'node:url';
 import { inspect, parseArgs } from 'node:util';
+import streamValues from 'stream-json/streamers/stream-values.js';
 
 import { DbBasics } from './db-basics.ts';
 import { IoMssql } from './io-mssql.ts';
@@ -56,6 +58,36 @@ async function readStdin(): Promise<string> {
   return Buffer.concat(chunks).toString('utf-8');
 }
 
+// Parses JSON from a stream incrementally instead of first materializing the
+// whole input as one JS string. Node/V8 caps string length at ~512 MiB
+// (0x1fffffe8 chars) — reading a large catalog/data file via
+// readFileSync(..., 'utf-8') + JSON.parse hits that ceiling long before disk
+// space or RAM would, even though the resulting parsed object would fit
+// comfortably in memory.
+async function readJsonStream<T = unknown>(stream: Readable): Promise<T> {
+  const parseStream = streamValues.withParserAsStream();
+  return new Promise<T>((resolvePromise, reject) => {
+    let parsed: T | undefined;
+    parseStream.on('data', (data: { value: T }) => {
+      parsed = data.value;
+    });
+    parseStream.on('end', () => {
+      if (parsed === undefined) {
+        reject(new Error('Empty or invalid JSON input'));
+        return;
+      }
+      resolvePromise(parsed);
+    });
+    parseStream.on('error', reject);
+    stream.on('error', reject);
+    stream.pipe(parseStream);
+  });
+}
+
+function readJsonFile<T = unknown>(filePath: string): Promise<T> {
+  return readJsonStream<T>(createReadStream(filePath));
+}
+
 async function runCatalog(
   baseConfig: sql.config,
   schema: string | undefined,
@@ -66,10 +98,7 @@ async function runCatalog(
   const filePath = resolve(process.cwd(), args[0]);
   if (!existsSync(filePath)) throw new Error(`File not found: ${filePath}`);
 
-  const catalogData = JSON.parse(readFileSync(filePath, 'utf-8')) as Record<
-    string,
-    any
-  >;
+  const catalogData = await readJsonFile<Record<string, any>>(filePath);
   const dbName =
     baseConfig.database ??
     'db_' + basename(args[0]).replace(/\.(rljson|json)$/i, '');
@@ -203,13 +232,11 @@ async function main(argv: string[] = process.argv.slice(2)): Promise<void> {
         break;
 
       case 'write': {
-        let jsonStr: string;
-        if (!args[0] || args[0] === '-') {
-          jsonStr = await readStdin();
-        } else {
-          jsonStr = readFileSync(args[0], 'utf-8');
-        }
-        await io.write({ data: JSON.parse(jsonStr) });
+        const writeData =
+          !args[0] || args[0] === '-'
+            ? await readJsonStream(process.stdin)
+            : await readJsonFile(args[0]);
+        await io.write({ data: writeData as any });
         result = 'OK';
         break;
       }

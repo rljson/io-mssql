@@ -60,7 +60,8 @@
     "@rljson/is-ready": "^0.0.17",
     "@rljson/json": "^0.0.23",
     "@rljson/rljson": "^0.0.79",
-    "mssql": "^12.6.0"
+    "mssql": "^12.6.0",
+    "stream-json": "^3.5.0"
   },
   "pnpm": {
     "overrides": {
