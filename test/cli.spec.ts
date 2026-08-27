@@ -190,21 +190,20 @@ describe('CLI', () => {
       expect(output).toContain('"schema": "main"');
     });
 
-    it('handles catalog with no tableCfgs gracefully', async () => {
-      // Tests coverage of line 85: optional chaining on catalogData['tableCfgs']?.['_data']
+    it('rejects catalog files with no tableCfgs', async () => {
+      // Tests coverage of the tableCfgs validation: catalogData['tableCfgs']?.['_data']
       const noCfgFile = resolve(ROOT, 'data', 'catalog-no-data.json');
-      const logSpy = vi.spyOn(console, 'log').mockImplementation(() => {});
-      await main([
-        ...CONN_ARGS,
-        '--database',
-        'TestDbCliNoData',
-        '--schema',
-        SCHEMA,
-        'catalog',
-        noCfgFile,
-      ]);
-      const output = logSpy.mock.calls.map((c) => c[0] as string).join('');
-      expect(output).toContain('"status": "OK"');
+      await expect(
+        main([
+          ...CONN_ARGS,
+          '--database',
+          'TestDbCliNoData',
+          '--schema',
+          SCHEMA,
+          'catalog',
+          noCfgFile,
+        ]),
+      ).rejects.toThrow(/no tableCfgs/);
     });
   });
 

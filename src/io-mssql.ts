@@ -172,7 +172,13 @@ export class IoMssql implements Io {
     void this._coerceDataToTableCfgTypes;
 
     const hashedData = hsh(request.data);
-    await this._ioTools.throwWhenTableDataDoesNotMatchCfg(request.data);
+    try {
+      await this._ioTools.throwWhenTableDataDoesNotMatchCfg(request.data);
+    } catch (error) {
+      throw new Error(
+        this._dedupeTableCfgMismatchErrors((error as Error).message),
+      );
+    }
 
     await iterateTables(hashedData, async (tableName, tableData) => {
       const tableCfg = await this._ioTools.tableCfg(tableName);
@@ -249,6 +255,28 @@ export class IoMssql implements Io {
         );
       }
     });
+  }
+
+  // @rljson/rljson reports one "in row N" error per offending row, so a
+  // column with the wrong type across an entire table produces one line per
+  // row — often thousands of near-identical messages. Collapse those down to
+  // one line per distinct (column, actual type, expected type) combination
+  // so the thrown error stays readable.
+  private _dedupeTableCfgMismatchErrors(message: string): string {
+    const lines = message.split('\n');
+    const firstErrorIndex = lines.findIndex((line) => line.startsWith('- '));
+
+    const header = lines.slice(0, firstErrorIndex);
+    const seen = new Set<string>();
+    const dedupedErrors: string[] = [];
+    for (const line of lines.slice(firstErrorIndex)) {
+      const key = line.replace(/ in row \d+ /, ' in row N ');
+      if (seen.has(key)) continue;
+      seen.add(key);
+      dedupedErrors.push(line);
+    }
+
+    return [...header, ...dedupedErrors].join('\n');
   }
 
   // Casts row values to the type declared for their column, so that e.g. a

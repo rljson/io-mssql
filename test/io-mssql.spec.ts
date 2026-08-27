@@ -140,6 +140,39 @@ describe('IoMssql', async () => {
     expect(1).toEqual(1);
   });
 
+  it('reports a type mismatch that occurs in many rows only once', async () => {
+    const tableName = 'typeMismatchTable';
+    const exampleCfg: TableCfg = exampleTableCfg({ key: tableName });
+    const tableCfg: TableCfg = {
+      ...exampleCfg,
+      columns: [
+        { key: '_hash', type: 'string', titleShort: '_hash', titleLong: 'Hash' },
+        { key: 'token', type: 'string', titleShort: 'token', titleLong: 'token' },
+      ],
+    };
+    await ioSql.createOrExtendTable({ tableCfg });
+
+    const badRows = Array.from({ length: 5 }, (_, i) => ({
+      token: [`not-a-string-${i}`],
+    }));
+
+    let error: unknown = null;
+    try {
+      await ioSql.write({
+        data: {
+          [tableName]: { _type: 'components', _data: badRows },
+        },
+      });
+    } catch (err) {
+      error = err;
+    }
+
+    expect(error).not.toBeNull();
+    const message = (error as Error).message;
+    const occurrences = message.split('has type "jsonArray", but expected "string"').length - 1;
+    expect(occurrences).toBe(1);
+  });
+
   // Skipped: _coerceDataToTableCfgTypes is temporarily disabled in write().
   it.skip('casts values to the type declared by the number and string columns', async () => {
     const tableName = 'coerceNumberTable';

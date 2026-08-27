@@ -99,6 +99,15 @@ async function runCatalog(
   if (!existsSync(filePath)) throw new Error(`File not found: ${filePath}`);
 
   const catalogData = await readJsonFile<Record<string, any>>(filePath);
+  const tableCfgs: TableCfg[] = catalogData['tableCfgs']?.['_data'] ?? [];
+  if (tableCfgs.length === 0) {
+    throw new Error(
+      `Invalid catalog file: ${filePath} has no tableCfgs. ` +
+        `Expected a top-level "tableCfgs" object with a non-empty "_data" array ` +
+        `(rljson format) — the file may need to be converted first.`,
+    );
+  }
+
   const dbName =
     baseConfig.database ??
     'db_' + basename(args[0]).replace(/\.(rljson|json)$/i, '');
@@ -115,8 +124,6 @@ async function runCatalog(
   const io = new IoMssql(dbCfg, schemaName);
   try {
     await io.init();
-
-    const tableCfgs: TableCfg[] = catalogData['tableCfgs']?.['_data'] ?? [];
 
     // Create / extend all tables
     for (const tableCfg of tableCfgs) {
