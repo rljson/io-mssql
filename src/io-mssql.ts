@@ -536,11 +536,12 @@ export class IoMssql implements Io {
       try {
         await dbRequest.query(statement);
       } catch (error) {
+        /* v8 ignore else -- @preserve */
         if ((error as any).number === 2705) {
           continue;
+        } else {
+          throw error;
         }
-        /* v8 ignore next -- @preserve */
-        throw error;
       }
     }
   }
@@ -569,11 +570,12 @@ export class IoMssql implements Io {
       // unhandled promise rejection (both _createTable() and
       // _extendTable() called this method without awaiting it) -- severe
       // enough to crash the whole Node process outright.
+      /* v8 ignore else -- @preserve */
       if ((error as any).number === 2627) {
         return;
+      } else {
+        throw error;
       }
-      /* v8 ignore next -- @preserve */
-      throw error;
     }
   }
 
