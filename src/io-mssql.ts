@@ -521,12 +521,28 @@ export class IoMssql implements Io {
     }
 
     // Write new tableCfg into tableCfgs table
-    this._insertTableCfg(newTableCfg);
+    await this._insertTableCfg(newTableCfg);
 
-    // Add new columns to the table
+    // Add new columns to the table. Two concurrent _extendTable() calls
+    // for the same table can both read the same `oldTableCfg` above
+    // (neither has applied its ALTER yet), compute the same `addedColumns`,
+    // and both attempt to add them -- the second ALTER then fails with SQL
+    // error 2705 ("column ... specified more than once" / already exists).
+    // Tolerated the same way createOrExtendTable()'s sibling duplicate-key
+    // cases are: the desired end state (this column exists) already holds,
+    // so it's a no-op, not a real error.
     const alter = this.stm.alterTable(tableKey, addedColumns);
     for (const statement of alter) {
-      await dbRequest.query(statement);
+      try {
+        await dbRequest.query(statement);
+      } catch (error) {
+        /* v8 ignore else -- @preserve */
+        if ((error as any).number === 2705) {
+          continue;
+        } else {
+          throw error;
+        }
+      }
     }
   }
 
@@ -541,7 +557,26 @@ export class IoMssql implements Io {
     values.forEach((val, idx) => {
       req.input(`p${idx}`, val);
     });
-    await req.query(this.stm.insertTableCfg());
+    try {
+      await req.query(this.stm.insertTableCfg());
+    } catch (error) {
+      // Same tolerance _initTableCfgs() already has: a duplicate-key
+      // violation here means a config with this exact (content-hashed)
+      // key already exists -- someone else's concurrent createOrExtendTable()
+      // call for the same table beat this one to it, or this exact config
+      // was already provisioned earlier. Either way the desired end state
+      // (this config's row exists) already holds, so it's a no-op, not a
+      // real error. Left unguarded, this rejection used to escape as an
+      // unhandled promise rejection (both _createTable() and
+      // _extendTable() called this method without awaiting it) -- severe
+      // enough to crash the whole Node process outright.
+      /* v8 ignore else -- @preserve */
+      if ((error as any).number === 2627) {
+        return;
+      } else {
+        throw error;
+      }
+    }
   }
 
   private async _createTable(
@@ -549,7 +584,7 @@ export class IoMssql implements Io {
     request: { tableCfg: TableCfg },
   ) {
     const req = new sql.Request(this._conn);
-    this._insertTableCfg(tableCfgHashed);
+    await this._insertTableCfg(tableCfgHashed);
     await req.query(this.stm.createTable(request.tableCfg));
   }
 

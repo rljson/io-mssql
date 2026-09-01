@@ -1,6 +1,6 @@
 {
   "name": "@rljson/io-mssql",
-  "version": "0.0.30",
+  "version": "0.0.32",
   "description": "Rljson io-mssql description",
   "homepage": "https://github.com/rljson/io-mssql",
   "bugs": "https://github.com/rljson/io-mssql/issues",
@@ -34,6 +34,7 @@
     "installConformanceTests": "node scripts/install-conformance-tests.js"
   },
   "devDependencies": {
+    "@rolldown/binding-win32-x64-msvc": "1.2.6",
     "@types/mssql": "^12.3.0",
     "@types/node": "^26.4.0",
     "@typescript-eslint/eslint-plugin": "^8.68.0",
