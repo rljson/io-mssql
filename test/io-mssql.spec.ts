@@ -424,4 +424,46 @@ describe('IoMssql', async () => {
       expect(row._hash).toBe('unchanged');
     });
   });
+
+  describe('createOrExtendTable() concurrency', () => {
+    it('supports two concurrent calls creating the same brand-new table', async () => {
+      // Regression test: _createTable()/_extendTable() used to call
+      // _insertTableCfg() without awaiting it, so a duplicate-key
+      // rejection from it (two concurrent calls both trying to insert
+      // the same tableCfgs_tbl row) escaped as an unhandled promise
+      // rejection -- severe enough to crash the whole Node process, not
+      // just reject the caller's own promise. Both calls creating the
+      // same table concurrently must now resolve cleanly.
+      const tableCfg: TableCfg = exampleTableCfg({ key: 'concurrentTable' });
+
+      await expect(
+        Promise.all([
+          ioSql.createOrExtendTable({ tableCfg }),
+          ioSql.createOrExtendTable({ tableCfg }),
+        ]),
+      ).resolves.toBeDefined();
+
+      expect(await ioSql.tableExists('concurrentTable')).toBe(true);
+    });
+
+    it('supports two concurrent calls extending the same already-existing table', async () => {
+      const tableCfg: TableCfg = exampleTableCfg({ key: 'concurrentExtend' });
+      await ioSql.createOrExtendTable({ tableCfg });
+
+      const extendedCfg: TableCfg = {
+        ...tableCfg,
+        columns: [
+          ...tableCfg.columns,
+          { key: 'extraColumn', type: 'string' } as TableCfg['columns'][0],
+        ],
+      };
+
+      await expect(
+        Promise.all([
+          ioSql.createOrExtendTable({ tableCfg: extendedCfg }),
+          ioSql.createOrExtendTable({ tableCfg: extendedCfg }),
+        ]),
+      ).resolves.toBeDefined();
+    });
+  });
 });
