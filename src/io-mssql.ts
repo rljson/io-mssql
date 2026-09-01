@@ -521,7 +521,7 @@ export class IoMssql implements Io {
     }
 
     // Write new tableCfg into tableCfgs table
-    this._insertTableCfg(newTableCfg);
+    await this._insertTableCfg(newTableCfg);
 
     // Add new columns to the table
     const alter = this.stm.alterTable(tableKey, addedColumns);
@@ -541,7 +541,25 @@ export class IoMssql implements Io {
     values.forEach((val, idx) => {
       req.input(`p${idx}`, val);
     });
-    await req.query(this.stm.insertTableCfg());
+    try {
+      await req.query(this.stm.insertTableCfg());
+    } catch (error) {
+      // Same tolerance _initTableCfgs() already has: a duplicate-key
+      // violation here means a config with this exact (content-hashed)
+      // key already exists -- someone else's concurrent createOrExtendTable()
+      // call for the same table beat this one to it, or this exact config
+      // was already provisioned earlier. Either way the desired end state
+      // (this config's row exists) already holds, so it's a no-op, not a
+      // real error. Left unguarded, this rejection used to escape as an
+      // unhandled promise rejection (both _createTable() and
+      // _extendTable() called this method without awaiting it) -- severe
+      // enough to crash the whole Node process outright.
+      if ((error as any).number === 2627) {
+        return;
+      }
+      /* v8 ignore next -- @preserve */
+      throw error;
+    }
   }
 
   private async _createTable(
@@ -549,7 +567,7 @@ export class IoMssql implements Io {
     request: { tableCfg: TableCfg },
   ) {
     const req = new sql.Request(this._conn);
-    this._insertTableCfg(tableCfgHashed);
+    await this._insertTableCfg(tableCfgHashed);
     await req.query(this.stm.createTable(request.tableCfg));
   }
 
