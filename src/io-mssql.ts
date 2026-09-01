@@ -523,10 +523,25 @@ export class IoMssql implements Io {
     // Write new tableCfg into tableCfgs table
     await this._insertTableCfg(newTableCfg);
 
-    // Add new columns to the table
+    // Add new columns to the table. Two concurrent _extendTable() calls
+    // for the same table can both read the same `oldTableCfg` above
+    // (neither has applied its ALTER yet), compute the same `addedColumns`,
+    // and both attempt to add them -- the second ALTER then fails with SQL
+    // error 2705 ("column ... specified more than once" / already exists).
+    // Tolerated the same way createOrExtendTable()'s sibling duplicate-key
+    // cases are: the desired end state (this column exists) already holds,
+    // so it's a no-op, not a real error.
     const alter = this.stm.alterTable(tableKey, addedColumns);
     for (const statement of alter) {
-      await dbRequest.query(statement);
+      try {
+        await dbRequest.query(statement);
+      } catch (error) {
+        if ((error as any).number === 2705) {
+          continue;
+        }
+        /* v8 ignore next -- @preserve */
+        throw error;
+      }
     }
   }
 
