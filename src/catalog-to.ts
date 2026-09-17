@@ -85,6 +85,8 @@ export class CatalogTo {
     // Insert data
     console.log(`Inserting data for ${tableCfgs.length} tables`);
 
+    const failures: string[] = [];
+
     for (const tableCfg of tableCfgs) {
       const tableKey = tableCfg.key;
       const tableBlock: JSON = (catalogData as any)[tableKey];
@@ -106,9 +108,16 @@ export class CatalogTo {
         } catch (e) {
           const error = this._normalizeError(e);
           console.log(tableKey, error.message);
-          // throw error;
+          failures.push(`${tableKey}: ${error.message}`);
         }
       }
+    }
+
+    if (failures.length > 0) {
+      throw new Error(
+        `Data insertion failed for ${failures.length} table(s):\n` +
+          failures.join('\n'),
+      );
     }
 
     return 'Data insertion complete';
