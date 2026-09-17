@@ -75,8 +75,9 @@ describe('CatalogTo', () => {
 
   describe('data insertion', () => {
     it('should handle data insertion errors gracefully without stopping', async () => {
-      // This documents that _insertData catches and logs errors per table
-      // without re-throwing, allowing remaining tables to be processed
+      // This documents that _insertData catches and logs errors per table,
+      // still attempting remaining tables, before throwing an aggregated
+      // error for any tables that failed
       const consoleLogSpy = vi.spyOn(console, 'log');
       try {
         await CatalogTo.mssqlDb('outputcatalog.json');
@@ -145,8 +146,9 @@ describe('CatalogTo', () => {
     });
 
     it('should continue data insertion despite individual table errors', async () => {
-      // This documents that _insertData catches per-table errors
-      // and continues processing remaining tables
+      // This documents that _insertData catches per-table errors,
+      // continues processing remaining tables, and only throws the
+      // aggregated failure once all tables have been attempted
       // Targets: _insertData catch block with error logging
       const result = await CatalogTo.mssqlDb('outputcatalog.json');
       expect(result).toBe('OK');
@@ -161,17 +163,20 @@ describe('CatalogTo', () => {
       consoleLogSpy.mockRestore();
     });
 
-    it('logs the tableKey and error message when write() rejects for a table', async () => {
+    it('logs the tableKey and error message when write() rejects for a table, then throws', async () => {
       // Forces a genuine write() failure (rather than relying on incidental
       // data shape) to exercise the catch block in _insertData directly.
+      // The failure is logged immediately, but other tables still get a
+      // chance to write before the aggregated error is thrown at the end.
       const writeSpy = vi
         .spyOn(IoMssql.prototype, 'write')
         .mockRejectedValueOnce(new Error('simulated write failure'));
       const consoleLogSpy = vi.spyOn(console, 'log');
 
-      const result = await CatalogTo.mssqlDb('minimal-catalog.json');
+      await expect(CatalogTo.mssqlDb('minimal-catalog.json')).rejects.toThrow(
+        /smallTable: simulated write failure/,
+      );
 
-      expect(result).toBe('OK');
       expect(consoleLogSpy).toHaveBeenCalledWith(
         'smallTable',
         'simulated write failure',
