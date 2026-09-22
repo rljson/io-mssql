@@ -1,6 +1,0 @@
-{
-  "publishConfig": {
-    "mergeMessage": "general update",
-    "versionIncrement": "patch"
-  }
-}
