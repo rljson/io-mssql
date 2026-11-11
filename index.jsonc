@@ -1,0 +1,40 @@
+// @license
+// Copyright (c) rljson
+//
+// Use of this source code is governed by terms that can be
+// found in the LICENSE file in the root of this package.
+
+{
+  // The package name, as declared in pubspec.yaml / package.json.
+  "name": "@rljson/io-mssql",
+
+  // 1-2 sentence summary about this repo.
+  "summary": "Rljson Io implementation on Microsoft SQL Server. Creates databases, schemas and tables from tableCfgs, writes and reads rljson data; CLI/exe to import rljson catalogs.",
+
+  // 1-3 bullet points: the problem space.
+  "domain": [
+    "IoMssql: Io interface on SQL Server (createOrExtendTable, write, readRows, dump)",
+    "write: batched INSERTs under the 2100 parameter limit, rows identified by _hash, existing rows skipped",
+    "DbBasics, CatalogTo, CLI: create db/schema, install procedures, import rljson files"
+  ],
+
+  // The repos this one depends on and the repos depending on it.
+  // Keep the reason or the API behind each entry, not just the name.
+  "interfaces": {
+    // "<repo-a>": "why / API"
+    "uses": {
+      "@rljson/io": "Io interface, IoTools, IoDbNameMapping",
+      "@rljson/rljson": "Rljson, TableCfg, iterateTables",
+      "@rljson/hash": "hsh, hip",
+      "@rljson/json": "Json types",
+      "@rljson/is-ready": "IsReady",
+      "mssql": "SQL Server driver"
+    },
+
+    // "<repo-b>": "why / API"
+    "usedBy": {
+      "ds-catalog-preparer-app": "IoMssql, DbBasics: import rljson catalogs into SQL Server",
+      "argocd-test": "IoMssql"
+    }
+  }
+}

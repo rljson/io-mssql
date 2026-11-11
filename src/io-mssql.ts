@@ -182,9 +182,6 @@ export class IoMssql implements Io {
 
     await iterateTables(hashedData, async (tableName, tableData) => {
       const tableCfg = await this._ioTools.tableCfg(tableName);
-      const tableKeyWithSuffix = this._map.addTableSuffix(tableName);
-      const columnKeys = this._prepareColumnNames(tableCfg.columns);
-      const mainQuery = `INSERT INTO ${this._schemaName}.${tableKeyWithSuffix} (${columnKeys}) VALUES `;
       const columnCount = tableCfg.columns.length;
 
       // SQL Server rejects requests with more than 2100 parameters. Batch
@@ -197,7 +194,7 @@ export class IoMssql implements Io {
 
       const errorStore = new Map<number, string>();
       let errorCount = 0;
-      const rows = tableData._data;
+      const rows = this._uniqueRowsByHash(tableData._data as Json[]);
 
       for (
         let batchStart = 0;
@@ -225,23 +222,21 @@ export class IoMssql implements Io {
           position += columnCount;
         }
         try {
-          await sqlRequest.query(mainQuery + placeHolderLines.join(', '));
+          await sqlRequest.query(
+            this._insertMissingRowsQuery(tableName, tableCfg, placeHolderLines),
+          );
         } catch (error) {
-          /* v8 ignore next -- @preserve */
-          if ((error as any).number === 2627) {
-            return;
-          }
-          /* v8 ignore next -- @preserve */
+          // A failing batch must not stop the batches after it: collect the
+          // error and go on, so that every other row still gets written.
+          /* v8 ignore start -- @preserve */
           const errorMessage =
             error instanceof Error ? error.message : 'Unknown error';
-          /* v8 ignore next -- @preserve */
-
           errorCount++;
           errorStore.set(
             errorCount,
             `Error inserting into table ${tableName}: ${errorMessage}`,
           );
-          /* v8 ignore end */
+          /* v8 ignore stop -- @preserve */
         }
       }
 
@@ -631,6 +626,45 @@ export class IoMssql implements Io {
     }
 
     return result;
+  }
+
+  // Rows are identified by their hash, the primary key of every table. A row
+  // that appears twice in one write would make its batch fail with a
+  // duplicate key, so only the first occurrence is kept.
+  private _uniqueRowsByHash(rows: Json[]): Json[] {
+    const seen = new Set<string>();
+    const result: Json[] = [];
+    for (const row of rows) {
+      const hash = row[this._map.primaryKeyColumn] as string;
+      if (seen.has(hash)) continue;
+      seen.add(hash);
+      result.push(row);
+    }
+    return result;
+  }
+
+  // Inserts the rows of one batch that the table does not hold yet. Rows are
+  // content-addressed, so a row whose hash already exists is identical and
+  // is skipped instead of failing the whole batch with a duplicate key.
+  // The hashes are compared binary, i.e. case-sensitive, whatever the
+  // collation of the column is.
+  private _insertMissingRowsQuery(
+    tableName: TableKey,
+    tableCfg: TableCfg,
+    placeHolderLines: string[],
+  ): string {
+    const table = `${this._schemaName}.${this._map.addTableSuffix(tableName)}`;
+    const columnKeys = this._prepareColumnNames(tableCfg.columns);
+    const hashColumn = this._map.addColumnSuffix(this._map.primaryKeyColumn);
+    const binary = 'COLLATE Latin1_General_BIN2';
+
+    return (
+      `INSERT INTO ${table} (${columnKeys}) ` +
+      `SELECT ${columnKeys} FROM (VALUES ${placeHolderLines.join(', ')}) ` +
+      `AS newRows (${columnKeys}) ` +
+      `WHERE NOT EXISTS (SELECT 1 FROM ${table} AS existing ` +
+      `WHERE existing.${hashColumn} ${binary} = newRows.${hashColumn} ${binary})`
+    );
   }
 
   private _prepareColumnNames(columnKeys: ColumnCfg[]): string {
