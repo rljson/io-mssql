@@ -1,8 +1,37 @@
 {
-  "permissions": {
-    "allow": [
-      "Bash(gh search *)",
-      "Bash(gh pr *)"
+  "hooks": {
+    "SessionStart": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/pm-prompts.mjs\" start || true",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "UserPromptSubmit": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/pm-prompts.mjs\" prompt || true",
+            "timeout": 10
+          }
+        ]
+      }
+    ],
+    "SessionEnd": [
+      {
+        "hooks": [
+          {
+            "type": "command",
+            "command": "node \"$CLAUDE_PROJECT_DIR/.claude/hooks/pm-prompts.mjs\" end || true",
+            "timeout": 10
+          }
+        ]
+      }
     ]
   }
 }

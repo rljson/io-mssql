@@ -173,6 +173,70 @@ describe('IoMssql', async () => {
     expect(occurrences).toBe(1);
   });
 
+  describe('write', () => {
+    const tokenTableCfg = (tableName: string): TableCfg => ({
+      ...exampleTableCfg({ key: tableName }),
+      columns: [
+        { key: '_hash', type: 'string', titleShort: '_hash', titleLong: 'Hash' },
+        { key: 'token', type: 'string', titleShort: 'token', titleLong: 'token' },
+      ],
+    });
+
+    const tokenRows = (from: number, to: number) =>
+      Array.from({ length: to - from }, (_, i) => ({ token: `t${from + i}` }));
+
+    const writeTokens = (tableName: string, rows: { token: string }[]) =>
+      ioSql.write({
+        data: { [tableName]: { _type: 'components', _data: rows } },
+      });
+
+    const storedTokens = async (tableName: string): Promise<string[]> => {
+      const dump = await ioSql.dumpTable({ table: tableName });
+      return (dump[tableName]._data as { token: string }[])
+        .map((row) => row.token)
+        .sort();
+    };
+
+    it('adds the new rows of data that overlaps rows already in the table', async () => {
+      const tableName = 'overlappingWritesTable';
+      await ioSql.createOrExtendTable({ tableCfg: tokenTableCfg(tableName) });
+
+      // Two columns make 1000 rows per batch, so the second write needs
+      // three batches. Its first batch starts with rows that already exist.
+      await writeTokens(tableName, tokenRows(0, 10));
+      await writeTokens(tableName, tokenRows(0, 2500));
+
+      expect(await storedTokens(tableName)).toEqual(
+        tokenRows(0, 2500)
+          .map((row) => row.token)
+          .sort(),
+      );
+    });
+
+    it('writes a row that appears twice in the data only once', async () => {
+      const tableName = 'repeatedRowsTable';
+      await ioSql.createOrExtendTable({ tableCfg: tokenTableCfg(tableName) });
+
+      await writeTokens(tableName, [
+        { token: 'a' },
+        { token: 'b' },
+        { token: 'a' },
+      ]);
+
+      expect(await storedTokens(tableName)).toEqual(['a', 'b']);
+    });
+
+    it('leaves the table unchanged when all rows exist already', async () => {
+      const tableName = 'rewriteTable';
+      await ioSql.createOrExtendTable({ tableCfg: tokenTableCfg(tableName) });
+
+      await writeTokens(tableName, tokenRows(0, 3));
+      await writeTokens(tableName, tokenRows(0, 3));
+
+      expect(await storedTokens(tableName)).toEqual(['t0', 't1', 't2']);
+    });
+  });
+
   // Skipped: _coerceDataToTableCfgTypes is temporarily disabled in write().
   it.skip('casts values to the type declared by the number and string columns', async () => {
     const tableName = 'coerceNumberTable';
