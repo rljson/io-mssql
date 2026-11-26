@@ -115,7 +115,7 @@ describe('IoMssql', async () => {
   });
 
   it('should write an array correctly', async () => {
-    const tableName = 'seriesArticleRef';
+    const tableName = 'seriesArticleIds';
     const exampleCfg: TableCfg = exampleTableCfg({ key: tableName });
     const tableCfg: TableCfg = {
       ...exampleCfg,

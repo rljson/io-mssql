@@ -106,18 +106,18 @@
       {
         "seriess": [
           {
-            "ref": "AuXfr9o7QYNz5cD8TNR5OH",
+            "ref": "GLd0-rWje7IckSNXQpI8XY",
             "sliceIds": [
               "00",
               "01"
             ],
-            "_hash": "cNKA_sFDROAqgtQIA6ziAp"
+            "_hash": "JRzO4TvUOc_C0JQV7dx9K2"
           }
         ],
-        "_hash": "XAc3TqQaZRy0Pvs_fkW76Z"
+        "_hash": "dSSlX93VoOO0AhOYITqtk7"
       }
     ],
-    "_hash": "FgDsRkhFxNsWkhxOSkL6Gs",
+    "_hash": "sv71T6kCdjzHoHp0kPS3jP",
     "tableCfg": "YtMyPFKdoRCwVFmuzdqaWn"
   },
   "catalogSeriessLayer": {
@@ -125,16 +125,16 @@
     "_data": [
       {
         "add": {
-          "0069759": "XAc3TqQaZRy0Pvs_fkW76Z",
-          "_hash": "xE6zfg7vgGYuyYZ1mU9aUv"
+          "0069759": "dSSlX93VoOO0AhOYITqtk7",
+          "_hash": "Y577K1URanINOT3fPimbXm"
         },
         "sliceIdsTable": "catalogSliceId",
         "sliceIdsTableRow": "D3RgCNaBcM5Ppm4wmYU6wr",
         "componentsTable": "catalogSeriess",
-        "_hash": "_wCyVVpvvyJQ97uaKx0rpB"
+        "_hash": "wx7Frkvhb59kfTfaP5B4tp"
       }
     ],
-    "_hash": "jQdg2FE6UYpQ5J-nHMP6B0",
+    "_hash": "CKHLYjFpXu3O9KIJd4OogQ",
     "tableCfg": "HcNS5tlL5B-Yc3s4_R6bht"
   },
   "catalogCake": {
@@ -145,14 +145,14 @@
         "sliceIdsRow": "D3RgCNaBcM5Ppm4wmYU6wr",
         "layers": {
           "catalogGeneralLayer": "YcFjN479zSBT5rayubCRXM",
-          "catalogSeriessLayer": "_wCyVVpvvyJQ97uaKx0rpB",
-          "_hash": "7SWOkesYhA0yYWFE2_ElxF"
+          "catalogSeriessLayer": "wx7Frkvhb59kfTfaP5B4tp",
+          "_hash": "2-FxJh3SbjbdsaSUTNHKgL"
         },
-        "_hash": "G1xTZd-KFI8I0zkmZ4lXmJ"
+        "_hash": "2t3_07hPZB_2JyQNon6lia"
       }
     ],
     "tableCfg": "qnSyADYpFzJVxFvRjUrodj",
-    "_hash": "9NMp29_BLR188xDFp8cAqe"
+    "_hash": "Jgm41XrghB4-W_bpbwOwL8"
   },
   "seriesSliceId": {
     "_type": "sliceIds",
@@ -183,7 +183,7 @@
     "_hash": "NQQ7IewgYY5Mm1mp2Yiw41",
     "tableCfg": "vs9Kmw7R4qvEmJfBFPkQ93"
   },
-  "seriesArticleRef": {
+  "seriesArticleIds": {
     "_data": [
       {
         "articleSliceId": [
@@ -14974,7 +14974,7 @@
     "_hash": "mlqYGzSSa6b4r0KSdw5Cgl",
     "tableCfg": "SsV9S2dTeWWz_3sfkiIktn"
   },
-  "seriesArticleRefLayer": {
+  "seriesArticleIdsLayer": {
     "_type": "layers",
     "_data": [
       {
@@ -14985,12 +14985,12 @@
         },
         "sliceIdsTable": "seriesSliceId",
         "sliceIdsTableRow": "hGKcwnxJp4iCdH-W8BNHYr",
-        "componentsTable": "seriesArticleRef",
-        "_hash": "-h8GdKtYghiZx1gYunerEi"
+        "componentsTable": "seriesArticleIds",
+        "_hash": "XAlOU-qdCqKBbQWo-HNciP"
       }
     ],
-    "_hash": "7nHhbvcPoQ7s9yHSEQYhDN",
-    "tableCfg": "zCsOfrG6IhO-HGiragTsA_"
+    "_hash": "vI8LE_w66LuPDz1RKryhdg",
+    "tableCfg": "oOG-JCMEP8-DpNxwGHZwrd"
   },
   "seriesSeriesTextualInsertHistory": {
     "_type": "insertHistory",
@@ -14998,11 +14998,11 @@
     "tableCfg": "yCEdsElkKmAO6jpOBtYaQj",
     "_hash": "Uby4nV0jgU5SuKUnpArX8L"
   },
-  "seriesArticleRefInsertHistory": {
+  "seriesArticleIdsInsertHistory": {
     "_type": "insertHistory",
     "_data": [],
-    "tableCfg": "7CmyDU4wKmK-pfZbPDF-zk",
-    "_hash": "hFqsBXarmYBsUN2YprWsXh"
+    "tableCfg": "dOW0uAyG42IPDH1s5SMQ4B",
+    "_hash": "Wro8tf9qhzkrmqTWxRvrhE"
   },
   "seriesSeriesTextualLayerInsertHistory": {
     "_type": "insertHistory",
@@ -15010,11 +15010,11 @@
     "tableCfg": "K6eoIiETDg1e5ncXIe2sU7",
     "_hash": "GRwL_F54jlQlVIT73-e9xH"
   },
-  "seriesArticleRefLayerInsertHistory": {
+  "seriesArticleIdsLayerInsertHistory": {
     "_type": "insertHistory",
     "_data": [],
-    "tableCfg": "RJ1a-kFSdy4zw5d4RTQaSl",
-    "_hash": "ivoJOcYzP8k-yxrOuZcPbf"
+    "tableCfg": "Ck9xCEAoQbem0nQBFgAUo0",
+    "_hash": "ysmQaiU0G2oqXIEj2NDAej"
   },
   "seriesCakeInsertHistory": {
     "_type": "insertHistory",
@@ -29869,15 +29869,15 @@
         "sliceIdsRow": "hGKcwnxJp4iCdH-W8BNHYr",
         "layers": {
           "seriesSeriesTextualLayer": "yPJNs2hJ3IoWS6sv0J48XJ",
-          "seriesArticleRefLayer": "-h8GdKtYghiZx1gYunerEi",
+          "seriesArticleIdsLayer": "XAlOU-qdCqKBbQWo-HNciP",
           "seriesArticlesLayer": "grGGcHxo3CmghSXbITJVOH",
-          "_hash": "yLYHgCT5k2XENo9hxjKNRE"
+          "_hash": "TJyj-hufhtLFEw4hvXwxs3"
         },
-        "_hash": "AuXfr9o7QYNz5cD8TNR5OH"
+        "_hash": "GLd0-rWje7IckSNXQpI8XY"
       }
     ],
     "tableCfg": "RV_3YD_kV-43k-fGdbnJWr",
-    "_hash": "EqYaCSnvRwvGcw5IWv5zKG"
+    "_hash": "sWJ11otAdmmJKvFacdlnZC"
   },
   "articleSliceId": {
     "_type": "sliceIds",
@@ -164585,7 +164585,7 @@
         "_hash": "K6eoIiETDg1e5ncXIe2sU7"
       },
       {
-        "key": "seriesArticleRefLayer",
+        "key": "seriesArticleIdsLayer",
         "type": "layers",
         "columns": [
           {
@@ -164641,10 +164641,10 @@
         "isHead": false,
         "isRoot": false,
         "isShared": true,
-        "_hash": "zCsOfrG6IhO-HGiragTsA_"
+        "_hash": "oOG-JCMEP8-DpNxwGHZwrd"
       },
       {
-        "key": "seriesArticleRefLayerInsertHistory",
+        "key": "seriesArticleIdsLayerInsertHistory",
         "type": "insertHistory",
         "columns": [
           {
@@ -164662,11 +164662,11 @@
             "_hash": "h3f2KT-46nyCtBx3cx3P-r"
           },
           {
-            "key": "seriesArticleRefLayerRef",
+            "key": "seriesArticleIdsLayerRef",
             "type": "string",
             "titleLong": "Reference",
             "titleShort": "Ref",
-            "_hash": "1AVyazbUnl2Qe6mgdj8W8K"
+            "_hash": "T2IgsMI49JRnmJGBf1ybDl"
           },
           {
             "key": "route",
@@ -164693,7 +164693,7 @@
         "isHead": false,
         "isRoot": false,
         "isShared": false,
-        "_hash": "RJ1a-kFSdy4zw5d4RTQaSl"
+        "_hash": "Ck9xCEAoQbem0nQBFgAUo0"
       },
       {
         "key": "seriesSeriesTextual",
@@ -164772,7 +164772,7 @@
         "_hash": "yCEdsElkKmAO6jpOBtYaQj"
       },
       {
-        "key": "seriesArticleRef",
+        "key": "seriesArticleIds",
         "type": "components",
         "columns": [
           {
@@ -164798,10 +164798,10 @@
         "isHead": false,
         "isRoot": false,
         "isShared": false,
-        "_hash": "vKFZG330hOIOK7zclZEQw1"
+        "_hash": "k6QDxqq9gmKBaaBkZGxXLq"
       },
       {
-        "key": "seriesArticleRefInsertHistory",
+        "key": "seriesArticleIdsInsertHistory",
         "type": "insertHistory",
         "columns": [
           {
@@ -164819,11 +164819,11 @@
             "_hash": "h3f2KT-46nyCtBx3cx3P-r"
           },
           {
-            "key": "seriesArticleRefRef",
+            "key": "seriesArticleIdsRef",
             "type": "string",
             "titleLong": "Reference",
             "titleShort": "Ref",
-            "_hash": "yONgRP8KcNCoZmK5p9fo4z"
+            "_hash": "rna3b7sNwihlK8NfYqNFWN"
           },
           {
             "key": "route",
@@ -164850,7 +164850,7 @@
         "isHead": false,
         "isRoot": false,
         "isShared": false,
-        "_hash": "7CmyDU4wKmK-pfZbPDF-zk"
+        "_hash": "dOW0uAyG42IPDH1s5SMQ4B"
       },
       {
         "key": "seriesCake",
@@ -166684,7 +166684,7 @@
         "_hash": "5PmCyUEpFC0u7lTi8ffgAa"
       }
     ],
-    "_hash": "pxAmjgexNLgguJ_KiHRO30"
+    "_hash": "ulGEotpgpBC3P85QTewsGJ"
   },
-  "_hash": "sXvdJto215K_cH73gdLNhn"
+  "_hash": "pMY19gG1IJcpKEZW0YJLQN"
 }
